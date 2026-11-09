@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Programador de Horarios Foodology</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F0F4FF;color:#1A202C;min-height:100vh}
+.header{background:linear-gradient(135deg,#0A2360,#1565C0);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:17px;font-weight:800}
+.header p{font-size:11px;opacity:.65;margin-top:2px}
+.hbadge{background:rgba(255,255,255,.15);border-radius:8px;padding:6px 14px;text-align:right;font-size:11px;line-height:1.5}
+.hbadge b{font-size:15px;display:block}
+.filterbar{background:#fff;border-bottom:1px solid #E2E8F0;padding:12px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filterbar label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#475569;white-space:nowrap}
+.filterbar select{padding:6px 10px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;background:#fff;color:#1A202C;min-width:150px}
+.fbtn{padding:7px 18px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.fbtn:hover{background:#1251A3}
+.fbtn.sec{background:#fff;color:#1565C0;border:1.5px solid #1565C0}
+.fbtn.sec:hover{background:#EFF6FF}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px}
+.spinner{width:40px;height:40px;border:4px solid #E2E8F0;border-top-color:#1565C0;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px 24px}
+.kpi{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.kpi-l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#64748B;font-weight:700}
+.kpi-v{font-size:24px;font-weight:900;color:#0A2360;margin-top:3px;line-height:1}
+.kpi-s{font-size:11px;color:#94A3B8;margin-top:2px}
+.content{padding:0 24px 24px}
+table.dt{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);font-size:12.5px}
+table.dt th{background:#F8FAFF;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:9px 14px;text-align:left;border-bottom:1px solid #E2E8F0;white-space:nowrap}
+table.dt td{padding:9px 14px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr.clickable:hover td{background:#EFF6FF;cursor:pointer}
+table.dt tr.clickable td:first-child{color:#1565C0;font-weight:700;text-decoration:underline;text-decoration-color:#93C5FD}
+.tier{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.th{background:#DCFCE7;color:#166534}.tm{background:#FEF9C3;color:#854D0E}.tl{background:#FEE2E2;color:#991B1B}
+.eh{color:#166534;font-weight:700}.em{color:#854D0E;font-weight:700}.el{color:#991B1B;font-weight:700}
+.ppos{color:#166534}.pneu{color:#854D0E}.pneg{color:#991B1B}
+.prod-badge{display:inline-flex;flex-direction:column;align-items:center;gap:1px}
+.prod-num{font-size:20px;font-weight:900;line-height:1}
+.prod-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.03em}
+.prod-tag.pos{background:#DCFCE7;color:#166534}
+.prod-tag.neu{background:#FEF9C3;color:#854D0E}
+.prod-tag.neg{background:#FEE2E2;color:#991B1B}
+.info{background:#EFF6FF;border-left:3px solid #1565C0;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:14px}
+.detail-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.detail-title{font-size:18px;font-weight:800;color:#0A2360}
+.detail-sub{font-size:12px;color:#64748B;margin-top:2px}
+.section-t{font-size:13px;font-weight:700;color:#0A2360;margin-bottom:10px;margin-top:20px}
+/* Day x Hour grid */
+.grid-wrap{overflow-x:auto;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+table.dhgrid{border-collapse:collapse;min-width:900px;width:100%;font-size:11px;background:#fff}
+table.dhgrid th{background:#F8FAFF;color:#475569;font-size:10px;font-weight:700;padding:7px 6px;text-align:center;border:1px solid #E2E8F0;white-space:nowrap}
+table.dhgrid th.daycol{min-width:80px;text-align:left;padding-left:10px}
+table.dhgrid td.dayname{background:#F8FAFF;font-size:11px;font-weight:700;color:#475569;padding:6px 10px;border-right:1px solid #E2E8F0;border-bottom:1px solid #F1F5F9;white-space:nowrap}
+table.dhgrid td.cell{width:52px;min-width:50px;height:62px;text-align:center;vertical-align:middle;border:1px solid #F1F5F9;font-weight:700;font-size:12px;cursor:default;transition:transform .1s;padding:2px 1px}
+table.dhgrid td.cell:hover{transform:scale(1.12);z-index:2;position:relative}
+table.dhgrid td.cell.hcell{cursor:pointer;height:62px}
+.hcell-lbl{font-size:9px;opacity:.5;line-height:1.3;margin-bottom:0px;font-weight:600}
+.hcell-ord{font-size:8px;color:#94A3B8;line-height:1.3;font-weight:500;margin-bottom:1px}
+.hcell input{width:34px;border:none;background:transparent;font-size:12px;font-weight:700;text-align:center;color:inherit;-moz-appearance:textfield;cursor:text;display:block;margin:0 auto;padding:0}
+.hcell input::-webkit-outer-spin-button,.hcell input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#hour-modal{display:none;position:fixed;z-index:9999;background:#fff;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:14px 16px;width:220px;pointer-events:all}
+.legend{display:flex;align-items:center;gap:14px;margin-top:12px;font-size:11px;color:#64748B;flex-wrap:wrap}
+.litem{display:flex;align-items:center;gap:5px}
+.lbox{width:18px;height:18px;border-radius:4px;flex-shrink:0}
+/* Weekly table */
+table.wt{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);font-size:13px;margin-bottom:6px}
+table.wt th{background:#0A2360;color:#fff;font-size:11px;font-weight:700;padding:10px 14px;text-align:left}
+table.wt td{padding:10px 14px;border-bottom:1px solid #F1F5F9}
+table.wt tr:last-child td{border-bottom:none}
+table.wt tr:hover td{background:#F8FAFF}
+.wnum{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#1565C0;color:#fff;font-weight:800;font-size:12px}
+.hrchart-wrap{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-top:4px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+/* Comparison tables */
+.cmp-title{font-size:12px;font-weight:700;padding:8px 0 6px;border-bottom:2px solid #E2E8F0;margin-bottom:8px}
+.cmp-t1{color:#0A2360}.cmp-t2{color:#E91E8C}
+table.cmpt{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);font-size:12px}
+table.cmpt th{background:#F8FAFF;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:8px 12px;text-align:left;border-bottom:1px solid #E2E8F0}
+table.cmpt td{padding:8px 12px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+table.cmpt tr:last-child td{border-bottom:none;background:#F0F4FF;font-weight:700}
+.sb{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:21px;background:#1565C0;color:#fff;border-radius:6px;font-size:11px;font-weight:800;padding:0 5px}
+/* Alert badges */
+.abadge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.04em;white-space:nowrap;border-width:1.5px;border-style:solid}
+.ab-ok{background:#DCFCE7;color:#166534;border-color:#86EFAC}
+.ab-warn{background:#FEF9C3;color:#854D0E;border-color:#FDE047}
+.ab-alert{background:#FEE2E2;color:#991B1B;border-color:#FCA5A5}
+/* Row tints (only non-cell tds) */
+.row-ok td:not(.cell){background:rgba(220,252,231,.25)}
+.row-warn td:not(.cell){background:rgba(254,249,195,.35)}
+.row-alert td:not(.cell){background:rgba(254,226,226,.25)}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>Programador de Horarios Foodology</h1><p>Benchmark: 10 ordenes/hora por colaborador · Se actualiza con el mes seleccionado</p></div>
+  <div class="hbadge"><span>Periodo</span><b id="hperiod">—</b></div>
+</div>
+
+<div class="filterbar">
+  <label>Mes</label>
+  <select id="f-month"></select>
+  <span style="color:#CBD5E1;font-size:18px;margin:0 2px">|</span>
+  <label>Desde</label>
+  <input type="date" id="f-date-from" style="padding:6px 8px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;color:#1A202C;background:#fff" oninput="onDateInput()">
+  <label>Hasta</label>
+  <input type="date" id="f-date-to" style="padding:6px 8px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;color:#1A202C;background:#fff" oninput="onDateInput()">
+  <button class="fbtn sec" id="btn-clear-dates" onclick="clearDates()" style="display:none;padding:6px 10px;font-size:12px">✕ Limpiar</button>
+  <span style="color:#CBD5E1;font-size:18px;margin:0 2px">|</span>
+  <label>Ciudad</label>
+  <select id="f-city"><option value="all">Todas las ciudades</option></select>
+  <label>Cocina</label>
+  <select id="f-kitchen"><option value="all">Todas las cocinas</option></select>
+  <button class="fbtn" onclick="applyFilters()">Consultar</button>
+  <button class="fbtn sec" id="btn-back" onclick="backToOverview()" style="display:none">← Volver al resumen</button>
+  <button class="fbtn sec" id="btn-he" onclick="showHorasExtras()" style="margin-left:auto">📋 Horas Extras</button>
+</div>
+
+<div id="loading"><div class="spinner"></div><p style="color:#64748B;font-size:13px">Cargando datos...</p></div>
+
+<div id="view-overview" style="display:none">
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Cocinas activas</div><div class="kpi-v" id="ok1">—</div><div class="kpi-s">Colombia</div></div>
+    <div class="kpi"><div class="kpi-l">Ordenes del mes</div><div class="kpi-v" id="ok2">—</div><div class="kpi-s" id="ok2s">—</div></div>
+    <div class="kpi"><div class="kpi-l">Ventas GMV</div><div class="kpi-v" id="ok3">—</div><div class="kpi-s">millones COP</div></div>
+    <div class="kpi"><div class="kpi-l">Promedio ord/dia</div><div class="kpi-v" id="ok4">—</div><div class="kpi-s">por cocina</div></div>
+  </div>
+  <div class="content">
+    <div class="info">Haz clic en el nombre de una cocina para ver el detalle completo: semana a semana, horario recomendado por dia y hora, y curva de demanda.</div>
+    <div id="ov-table"></div>
+  </div>
+</div>
+
+<div id="view-detail" style="display:none">
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Ordenes del mes</div><div class="kpi-v" id="dk1">—</div><div class="kpi-s" id="dk1s">—</div></div>
+    <div class="kpi"><div class="kpi-l">Ventas GMV</div><div class="kpi-v" id="dk2">—</div><div class="kpi-s">COP del mes</div></div>
+    <div class="kpi"><div class="kpi-l">Ticket promedio</div><div class="kpi-v" id="dk3">—</div><div class="kpi-s">COP</div></div>
+    <div class="kpi"><div class="kpi-l">Productividad</div><div class="kpi-v" id="dk4">—</div><div class="kpi-s" id="dk4-sub">capacidad utilizada</div></div>
+  </div>
+  <div class="content">
+    <div class="detail-header">
+      <div>
+        <div class="detail-title" id="d-name">—</div>
+        <div class="detail-sub" id="d-sub">—</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-t">Semana a semana</div>
+        <table class="wt" id="weekly-table">
+          <thead><tr><th>Semana</th><th>Ordenes</th><th>GMV</th><th>Dias</th><th>Ord/dia</th></tr></thead>
+          <tbody id="weekly-body"></tbody>
+        </table>
+      </div>
+      <div>
+        <div class="section-t">Demanda por hora (promedio mensual)</div>
+        <div class="hrchart-wrap" style="height:195px;position:relative">
+          <canvas id="hchart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARACION SEMANAL -->
+    <div style="margin-top:28px;border-top:2px solid #E2E8F0;padding-top:20px">
+      <p class="section-t">📋 Proyección de dotación — Próxima semana por franja horaria</p>
+      <div class="info" style="margin-bottom:12px">Muestra cuántas personas recomienda el modelo para cada <strong>franja horaria</strong> (Mañana / Intermedio / Cierre) según el historial de pedidos. Edita los valores para reflejar lo que programaste en Avatar, y valida si el horario es suficiente para el volumen esperado.</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <span id="cmp-week-label" style="font-size:12px;color:#E91E8C;font-weight:700">Cargando...</span>
+        <button class="fbtn" onclick="loadComparison()" style="padding:6px 14px;font-size:12px">🔄 Actualizar</button>
+      </div>
+      <div id="cmp-load" style="display:none;color:#64748B;font-size:12px;padding:8px 0">Consultando Redshift...</div>
+      <div id="cmp-out"></div>
+    </div>
+  </div>
+</div>
+
+<div id="view-horas-extras" style="display:none">
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-l">Total horas semana</div><div class="kpi-v" id="he-total">0</div><div class="kpi-s">HE autorizadas</div></div>
+    <div class="kpi"><div class="kpi-l">Cocinas con HE</div><div class="kpi-v" id="he-kitchens">0</div><div class="kpi-s">esta semana</div></div>
+    <div class="kpi"><div class="kpi-l">Promedio por cocina</div><div class="kpi-v" id="he-avg">0</div><div class="kpi-s">horas/semana</div></div>
+    <div class="kpi"><div class="kpi-l">Día pico</div><div class="kpi-v" id="he-peak-day">—</div><div class="kpi-s" id="he-peak-sub">máx HE</div></div>
+  </div>
+  <div class="content">
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">📋 Horas Extras Autorizadas</div>
+        <div class="detail-sub">Registro semanal por cocina · Los datos se guardan automáticamente en este dispositivo</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="fbtn sec" onclick="heWeekNav(-1)" style="padding:6px 14px;font-size:13px">◀ Semana anterior</button>
+      <span id="he-week-label" style="font-size:13px;font-weight:700;color:#0A2360;min-width:200px;text-align:center">Semana: —</span>
+      <button class="fbtn sec" onclick="heWeekNav(1)" style="padding:6px 14px;font-size:13px">Semana siguiente ▶</button>
+      <button class="fbtn sec" onclick="heLoadFromAvatar()" id="btn-he-reload" style="padding:6px 14px;font-size:12px">🔄 Recargar Avatar</button>
+      <button class="fbtn" onclick="heCopyResumen()" style="padding:6px 14px;font-size:12px;margin-left:auto">📥 Copiar resumen</button>
+    </div>
+    <div id="he-avatar-status" style="font-size:11px;color:#64748B;padding:4px 2px 10px;min-height:20px">🔄 Cargando datos desde Avatar...</div>
+    <div style="overflow-x:auto">
+      <table id="he-table" style="border-collapse:collapse;width:100%;min-width:800px;font-size:12px">
+        <!-- filled by renderHorasExtras() -->
+      </table>
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0">
+      <span style="font-size:11px;color:#64748B">
+        💡 <strong>Cómo usar:</strong> Ingresa las horas extras autorizadas por cocina y día. Se guardan automáticamente.&nbsp;&nbsp;
+        <span style="display:inline-flex;gap:8px;margin-top:4px">
+          <span style="background:#fff;border:1px solid #E2E8F0;border-radius:4px;padding:1px 6px">0h = blanco</span>
+          <span style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:4px;padding:1px 6px;color:#854D0E">1–3h = amarillo</span>
+          <span style="background:#FED7AA;border:1px solid #FDBA74;border-radius:4px;padding:1px 6px;color:#9A3412">4–7h = naranja</span>
+          <span style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:4px;padding:1px 6px;color:#991B1B">8h+ = rojo</span>
+        </span>
+      </span>
+    </div>
+  </div>
+</div>
+
+<script>
+const BENCH=10;
+const DAYS_ORDER=[1,2,3,4,5,6,0];
+const DAYS_NAME=['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
+const HOURS=Array.from({length:18},(_,i)=>i+6);
+
+
+// Shift band definitions (Mañana / Intermedio / Cierre)
+var SHIFT_BANDS=[
+  {id:'manana',    label:'Mañana',    icon:'🌅',desc:'Inicio 5AM–9AM',   cumLabel:'Personas en turno 6–9h',
+   hours:[6,7,8,9],          bg:'#FFFBEB',fg:'#92400E',border:'#FCD34D'},
+  {id:'intermedio',label:'Intermedio',icon:'☀️', desc:'Inicio 10AM–1:30PM',cumLabel:'Total en turno al mediodía (mañana+intermedio)',
+   hours:[10,11,12,13,14],   bg:'#EFF6FF',fg:'#1E40AF',border:'#93C5FD'},
+  {id:'cierre',   label:'Cierre',    icon:'🌙',desc:'Inicio 2PM–4PM',   cumLabel:'Total en turno tarde (intermedio+cierre)',
+   hours:[16,17,18,19,20,21],bg:'#F5F3FF',fg:'#5B21B6',border:'#C4B5FD'}
+];
+
+function bandPeakAvg(dh,dow,hours){
+  var mx=0;
+  hours.forEach(function(h){if(dh[dow]&&dh[dow][h]&&dh[dow][h].avg>mx)mx=dh[dow][h].avg;});
+  return mx;
+}
+function bandRec(dh,dow,hours){
+  var pk=bandPeakAvg(dh,dow,hours);
+  return pk>0?Math.max(2,Math.ceil(pk/BENCH)):0;
+}
+
+// ---- Festivos colombianos (ISO dates) ----
+var COL_FESTIVOS=[
+  // Resto 2026
+  '2026-11-02','2026-11-16','2026-12-08','2026-12-25',
+  // 2027
+  '2027-01-01','2027-01-11','2027-03-22','2027-04-01','2027-04-02',
+  '2027-05-01','2027-05-17','2027-06-07','2027-06-14','2027-06-28',
+  '2027-07-20','2027-08-07','2027-08-16','2027-10-18','2027-11-01',
+  '2027-11-15','2027-12-08','2027-12-25'
+];
+var FESTIVO_SET=new Set(COL_FESTIVOS);
+var FESTIVO_BOOST=1.30; // +30% dotación en festivos
+
+// Headcount total por cocina (incluye quienes descansan ese día)
+var KITCHEN_HEADCOUNT={
+  'Usaquén':7,'Andes':7,'Chapinero':11,'Castellana':8,
+  'Villa del Prado':8,'Colina':7,'Chía':6,'Engativá':6,
+  'Veraguas':5,'Arrecife':6,'Kennedy':7,'Cedritos':6,
+  'Parque 93':8
+};
+
+// Cocinas Bogotá con cierre a medianoche (00h) los Jueves-Domingo (DOW 4,5,6,0)
+// Esta regla es fija — no depende de datos históricos
+var MIDNIGHT_KITCHENS=['Colina','Chapinero','Usaquén','Castellana','Parque 93'];
+var MIDNIGHT_DOWS=[0,4,5,6]; // Dom(0), Jue(4), Vie(5), Sáb(6)
+function isMidnightClose(kitchen,dow){
+  return MIDNIGHT_KITCHENS.indexOf(kitchen)>=0 && MIDNIGHT_DOWS.indexOf(dow)>=0;
+}
+
+function isFestivo(dateObj){
+  if(!dateObj)return false;
+  var iso=dateObj.getFullYear()+'-'+String(dateObj.getMonth()+1).padStart(2,'0')+'-'+String(dateObj.getDate()).padStart(2,'0');
+  return FESTIVO_SET.has(iso);
+}
+// Detecta dinámicamente si una cocina cierra tarde un día dado:
+// si el historial tiene avg >= 1 orden en hora 23 para ese DOW → opera hasta medianoche
+function isLateCloseDow(dh,dow){
+  return !!(dh&&dh[dow]&&dh[dow][23]&&dh[dow][23].avg>=1);
+}
+// Detecta si la cocina tiene ALGÚN día con cierre tarde (para el banner general)
+function kitchenHasLateDays(dh){
+  return DAYS_ORDER.some(function(dow){return isLateCloseDow(dh,dow);});
+}
+
+var APP={month:'',startDate:'',endDate:'',overviewData:[],kitchenData:null,selectedKitchen:null};
+
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return Math.round(n/1e3)+'K';return String(n);}
+function fmtCOP(n){return '$'+fmt(n);}
+function fmtFull(n){return n.toLocaleString('es-CO');}
+function tierC(v){return v>=250?'th':v>=100?'tm':'tl';}
+function tierL(v){return v>=250?'Alta':v>=100?'Media':'Baja';}
+function effC(e){return e>=70?'eh':e>=40?'em':'el';}
+function prodScore(eff){return parseFloat((eff/10).toFixed(1));}
+function prodInfo(score){
+  if(score>=7.5)return{cls:'pos',icon:'↑',txt:'Positivo'};
+  if(score>=5.0)return{cls:'neu',icon:'→',txt:'Neutro'};
+  return{cls:'neg',icon:'↓',txt:'Negativo'};
+}
+function prodHTML(score){
+  var p=prodInfo(score);
+  return'<div class="prod-badge"><span class="prod-num '+p.cls+'">'+score.toFixed(1)+'</span><span class="prod-tag '+p.cls+'">'+p.icon+' '+p.txt+'</span></div>';
+}
+
+function staffColor(s){
+  if(s===0)return{bg:'#F1F5F9',fg:'#CBD5E1'};
+  if(s<=2)return{bg:'#DBEAFE',fg:'#1E40AF'};
+  if(s===3)return{bg:'#60A5FA',fg:'#1E3A8A'};
+  if(s===4)return{bg:'#2563EB',fg:'#fff'};
+  if(s===5)return{bg:'#1D4ED8',fg:'#fff'};
+  return{bg:'#1E3A8A',fg:'#fff'};
+}
+
+function getMonths(){
+  var arr=[];
+  var now=new Date();
+  for(var i=0;i<=12;i++){
+    var d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    var y=d.getFullYear();
+    var m=String(d.getMonth()+1).padStart(2,'0');
+    var lbl=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+    if(i===0)lbl='Mes en curso · '+lbl;
+    arr.push({value:y+'-'+m,label:lbl.charAt(0).toUpperCase()+lbl.slice(1)});
+  }
+  return arr;
+}
+
+function getDateRange(mon){
+  var parts=mon.split('-');
+  var y=parseInt(parts[0]),m=parseInt(parts[1]);
+  var s=y+'-'+String(m).padStart(2,'0')+'-01';
+  var end=new Date(y,m,1);
+  var ey=end.getFullYear();
+  var em=String(end.getMonth()+1).padStart(2,'0');
+  var e=ey+'-'+em+'-01';
+  return{start:s,end:e};
+}
+
+function parseRows(r){
+  var d=r.structuredContent||JSON.parse(r.content[0].text);
+  return d.rows;
+}
+
+function callMcp(sql){
+  return window.cowork.callMcpTool('mcp__bc593148-2634-4c03-8558-85bc4f9f9bca__execute_query',{sql:sql});
+}
+
+function showLoading(msg){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('loading').innerHTML='<div class="spinner"></div><p style="color:#64748B;font-size:13px">'+(msg||'Cargando...')+'</p>';
+  document.getElementById('view-overview').style.display='none';
+  document.getElementById('view-detail').style.display='none';
+}
+function hideLoading(){document.getElementById('loading').style.display='none';}
+
+function sqlOverview(s,e){
+  return"SELECT kitchen,city,COUNT(*) total_orders,ROUND(SUM(gmv),0) total_gmv,ROUND(AVG(gmv),0) avg_ticket,COUNT(DISTINCT order_day) active_days,ROUND(COUNT(*)*1.0/COUNT(DISTINCT order_day),1) opd FROM fdgy_views.orders_consolidado WHERE country='COL' AND order_state='Finalized' AND order_day>='"+s+"' AND order_day<'"+e+"' GROUP BY kitchen,city ORDER BY total_orders DESC";
+}
+function sqlWeekly(k,s,e){
+  var esc=k.replace(/'/g,"''");
+  return"SELECT FLOOR(DATEDIFF('day','"+s+"'::date,order_day::date)/7)+1 semana,COUNT(*) orders,COUNT(DISTINCT order_day) dias,ROUND(SUM(gmv),0) gmv FROM fdgy_views.orders_consolidado WHERE country='COL' AND order_state='Finalized' AND kitchen='"+esc+"' AND order_day>='"+s+"' AND order_day<'"+e+"' GROUP BY semana ORDER BY semana";
+}
+function sqlDayHour(k,s,e){
+  var esc=k.replace(/'/g,"''");
+  return"SELECT EXTRACT(DOW FROM order_day) dow,CAST(order_hour AS INTEGER) hora,COUNT(*) orders,COUNT(DISTINCT order_day) dias FROM fdgy_views.orders_consolidado WHERE country='COL' AND order_state='Finalized' AND kitchen='"+esc+"' AND order_day>='"+s+"' AND order_day<'"+e+"' GROUP BY dow,hora ORDER BY dow,hora";
+}
+
+async function loadOverview(){
+  showLoading('Consultando ordenes del mes...');
+  armLoadSafety();
+  console.log('[loadOverview] inicio');
+  try{
+    var r=await callMcp(sqlOverview(APP.startDate,APP.endDate));
+    console.log('[loadOverview] query OK, isError='+r.isError);
+    if(r.isError)throw new Error(r.content[0].text);
+    var rows=parseRows(r);
+    APP.overviewData=rows.map(function(row){
+      return{name:row[0],city:row[1],total_orders:parseInt(row[2]),total_gmv:parseFloat(row[3]),avg_ticket:parseFloat(row[4]),active_days:parseInt(row[5]),opd:parseFloat(row[6])};
+    });
+    populateCityFilter();
+    renderOverview();
+    document.getElementById('view-overview').style.display='block';
+    console.log('[loadOverview] renderOverview OK');
+  }catch(e){
+    console.error('[loadOverview] ERROR: '+e.message);
+    document.getElementById('cmp-out').innerHTML='<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:14px;color:#991B1B;font-size:12px;margin:20px">Error cargando datos: '+e.message+'</div>';
+    document.getElementById('view-overview').style.display='block';
+  }finally{
+    hideLoading();
+    console.log('[loadOverview] hideLoading called');
+  }
+}
+
+async function loadKitchenDetail(kitchen){
+  showLoading('Cargando detalle de '+kitchen+'...');
+  armLoadSafety();
+  console.log('[loadKitchenDetail] inicio: '+kitchen);
+  try{
+    var r1=callMcp(sqlWeekly(kitchen,APP.startDate,APP.endDate));
+    var r2=callMcp(sqlDayHour(kitchen,APP.startDate,APP.endDate));
+    var results=await Promise.all([r1,r2]);
+    console.log('[loadKitchenDetail] queries OK');
+    if(results[0].isError||results[1].isError)throw new Error((results[0].isError?results[0]:results[1]).content[0].text);
+    var wRows=parseRows(results[0]);
+    var dhRows=parseRows(results[1]);
+    var weekly=wRows.map(function(r){return{semana:parseInt(r[0]),orders:parseInt(r[1]),dias:parseInt(r[2]),gmv:parseFloat(r[3])};});
+    var dh={};
+    dhRows.forEach(function(r){
+      var dow=parseInt(r[0]),hora=parseInt(r[1]),orders=parseInt(r[2]),dias=parseInt(r[3]);
+      if(!dh[dow])dh[dow]={};
+      dh[dow][hora]={orders:orders,dias:dias,avg:orders/dias};
+    });
+    APP.kitchenData={weekly:weekly,dh:dh};
+    APP.selectedKitchen=kitchen;
+    console.log('[loadKitchenDetail] renderDetail...');
+    try{
+      renderDetail();
+      console.log('[loadKitchenDetail] renderDetail OK');
+    }catch(re){
+      console.error('[loadKitchenDetail] renderDetail ERROR: '+re.message+' | '+re.stack);
+      // Show partial view even if render fails
+      document.getElementById('cmp-out').innerHTML='<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;color:#991B1B;font-size:12px">Error al renderizar el panel de turnos: '+re.message+'</div>';
+    }
+    document.getElementById('view-detail').style.display='block';
+    document.getElementById('btn-back').style.display='inline-block';
+    console.log('[loadKitchenDetail] view-detail visible');
+  }catch(e){
+    console.error('[loadKitchenDetail] ERROR: '+e.message+' | '+e.stack);
+    document.getElementById('view-overview').style.display='block';
+    var errDiv=document.createElement('div');
+    errDiv.style.cssText='background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:14px;color:#991B1B;font-size:12px;margin:20px';
+    errDiv.textContent='Error cargando detalle de '+kitchen+': '+e.message;
+    document.getElementById('view-overview').prepend(errDiv);
+  }finally{
+    hideLoading();
+    console.log('[loadKitchenDetail] hideLoading called');
+  }
+}
+
+function populateCityFilter(){
+  var cities={};
+  APP.overviewData.forEach(function(k){cities[k.city]=1;});
+  var sel=document.getElementById('f-city');
+  var cur=sel.value;
+  sel.innerHTML='<option value="all">Todas las ciudades</option>';
+  Object.keys(cities).sort().forEach(function(c){
+    sel.innerHTML+='<option value="'+c+'"'+(c===cur?' selected':'')+'>'+c+'</option>';
+  });
+  updateKitchenFilter();
+}
+
+function updateKitchenFilter(){
+  var city=document.getElementById('f-city').value;
+  var kitchens=APP.overviewData.filter(function(k){return city==='all'||k.city===city;});
+  var sel=document.getElementById('f-kitchen');
+  sel.innerHTML='<option value="all">Todas las cocinas</option>';
+  kitchens.forEach(function(k){
+    sel.innerHTML+='<option value="'+k.name+'">'+k.name+' ('+k.city+')</option>';
+  });
+}
+
+function renderOverview(){
+  var city=document.getElementById('f-city').value;
+  var data=APP.overviewData.filter(function(k){return city==='all'||k.city===city;});
+  var total=data.reduce(function(a,k){return a+k.total_orders;},0);
+  var gmv=data.reduce(function(a,k){return a+k.total_gmv;},0);
+  var avgOpd=data.length>0?data.reduce(function(a,k){return a+k.opd;},0)/data.length:0;
+  document.getElementById('ok1').textContent=data.length;
+  document.getElementById('ok2').textContent=total.toLocaleString('es');
+  document.getElementById('ok2s').textContent=Math.round(total/APP.active_days||30).toLocaleString('es')+' ord/dia';
+  document.getElementById('ok3').textContent=fmtCOP(gmv);
+  document.getElementById('ok4').textContent=Math.round(avgOpd);
+  var rows=data.map(function(k){
+    var opd=k.opd;
+    var shiftSH=estimateDailyStaffHours(k.name);
+    var cap=shiftSH*BENCH;
+    var eff=cap>0?Math.round(opd/cap*100):0;
+    var prod=k.active_days>0&&shiftSH>0?Math.round(k.total_gmv/(k.active_days*shiftSH)):0;
+    var ps=prodScore(eff);
+    return'<tr class="clickable" onclick="selectKitchen(\''+k.name.replace(/'/g,"\\'")+'\')">'
+      +'<td>'+k.name+'</td>'
+      +'<td>'+k.city+'</td>'
+      +'<td>'+k.total_orders.toLocaleString('es')+'</td>'
+      +'<td>'+k.opd+'</td>'
+      +'<td><span class="tier '+tierC(opd)+'">'+tierL(opd)+'</span></td>'
+      +'<td style="text-align:center">'+prodHTML(ps)+'</td>'
+      +'<td class="'+effC(eff)+'" style="text-align:center">'+eff+'%</td>'
+      +'<td>'+fmtCOP(k.avg_ticket)+'</td>'
+      +'</tr>';
+  }).join('');
+  document.getElementById('ov-table').innerHTML='<table class="dt"><thead><tr><th>Cocina (clic = detalle)</th><th>Ciudad</th><th>Ordenes/mes</th><th>Ord/dia</th><th>Segmento</th><th>Productividad</th><th>Efectividad</th><th>Ticket prom</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function estimateDailyStaffHours(kitchen){
+  // use preloaded day-hour data if available, else estimate from opd
+  if(APP.kitchenData&&APP.selectedKitchen===kitchen&&APP.kitchenData.dh){
+    return calcDailyStaffHours(APP.kitchenData.dh);
+  }
+  // fallback: estimate from opd using typical distribution
+  var k=APP.overviewData.find(function(x){return x.name===kitchen;});
+  if(!k)return 18; // 18 operational hours as default
+  return 18;
+}
+
+function calcDailyStaffHours(dh){
+  var total=0,shifts=0;
+  HOURS.forEach(function(h){
+    var maxAvg=0;
+    DAYS_ORDER.forEach(function(d){
+      var v=dh[d]&&dh[d][h]?dh[d][h].avg:0;
+      if(v>maxAvg)maxAvg=v;
+    });
+    var staff=maxAvg>0?Math.max(2,Math.ceil(maxAvg/BENCH)):0;
+    total+=staff;
+    if(staff>0)shifts++;
+  });
+  return shifts>0?total:18;
+}
+
+function renderDetail(){
+  var kitchen=APP.selectedKitchen;
+  var kinfo=APP.overviewData.find(function(k){return k.name===kitchen;})||{};
+  var dh=APP.kitchenData.dh;
+  var weekly=APP.kitchenData.weekly;
+  var shSH=calcDailyStaffHours(dh);
+  var cap=shSH*BENCH;
+  var eff=cap>0?Math.round((kinfo.opd||0)/cap*100):0;
+  document.getElementById('d-name').textContent=kitchen;
+  document.getElementById('d-sub').textContent=(kinfo.city||'')+' · '+APP.month+' · '+APP.active_days+' dias analizados';
+  document.getElementById('dk1').textContent=(kinfo.total_orders||0).toLocaleString('es');
+  document.getElementById('dk1s').textContent=(kinfo.opd||0)+' ord/dia promedio';
+  document.getElementById('dk2').textContent=fmtCOP(kinfo.total_gmv||0);
+  document.getElementById('dk3').textContent=fmtCOP(kinfo.avg_ticket||0);
+  var ps=prodScore(eff);
+  var pi=prodInfo(ps);
+  document.getElementById('dk4').innerHTML='<span class="'+pi.cls+'">'+ps.toFixed(1)+'</span>';
+  document.getElementById('dk4').className='kpi-v';
+  document.getElementById('dk4-sub').innerHTML=pi.icon+' '+pi.txt+' &nbsp;·&nbsp; Efect. '+eff+'%';
+  renderWeekly(weekly,kinfo);
+  loadComparison();
+  document.getElementById('f-kitchen').value=kitchen;
+}
+
+function renderWeekly(weekly,kinfo){
+  var totalOrds=kinfo.total_orders||0;
+  var shSH=APP.kitchenData?calcDailyStaffHours(APP.kitchenData.dh):18;
+  var prevPS=null;
+  var html=weekly.map(function(w,i){
+    var opd=w.dias>0?Math.round(w.orders/w.dias):0;
+    var pct=totalOrds>0?Math.round(w.orders/totalOrds*100):0;
+    var cap=shSH*BENCH;
+    var eff=cap>0?Math.round(opd/cap*100):0;
+    var ps=prodScore(eff);
+    var pi=prodInfo(ps);
+    var trend='';
+    if(prevPS!==null){trend=ps>prevPS+0.2?' <span style="color:#166534">↑</span>':ps<prevPS-0.2?' <span style="color:#991B1B">↓</span>':' <span style="color:#854D0E">→</span>';}
+    prevPS=ps;
+    return'<tr>'
+      +'<td><span class="wnum">'+w.semana+'</span></td>'
+      +'<td><strong>'+w.orders.toLocaleString('es')+'</strong> <small style="color:#94A3B8">('+pct+'%)</small></td>'
+      +'<td>'+fmtCOP(w.gmv)+'</td>'
+      +'<td>'+w.dias+'</td>'
+      +'<td>'+opd+' ord/dia</td>'
+      +'<td style="text-align:center"><strong class="'+pi.cls+'" style="font-size:16px">'+ps.toFixed(1)+'</strong>'+trend+'<br><span class="prod-tag '+pi.cls+'" style="font-size:9px">'+pi.icon+' '+pi.txt+'</span></td>'
+      +'</tr>';
+  }).join('');
+  document.getElementById('weekly-table').querySelector('thead tr').innerHTML='<th>Semana</th><th>Ordenes</th><th>GMV</th><th>Dias</th><th>Ord/dia</th><th>Productividad</th>';
+  document.getElementById('weekly-body').innerHTML=html||'<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:16px">Sin datos para este periodo</td></tr>';
+}
+
+function selectKitchen(k){
+  document.getElementById('f-kitchen').value=k;
+  loadKitchenDetail(k).catch(showError);
+}
+
+function onDateInput(){
+  var df=document.getElementById('f-date-from').value;
+  var dt=document.getElementById('f-date-to').value;
+  document.getElementById('btn-clear-dates').style.display=(df||dt)?'inline-block':'none';
+}
+
+function clearDates(){
+  document.getElementById('f-date-from').value='';
+  document.getElementById('f-date-to').value='';
+  document.getElementById('btn-clear-dates').style.display='none';
+}
+
+function getCustomRange(){
+  var df=document.getElementById('f-date-from').value;
+  var dt=document.getElementById('f-date-to').value;
+  if(!df&&!dt)return null;
+  var start=df||APP.startDate;
+  // end is exclusive: add 1 day to the "hasta" date
+  var endD=dt?new Date(dt):new Date(APP.endDate);
+  if(dt){endD=new Date(dt);endD.setDate(endD.getDate()+1);}
+  var end=endD.toISOString().slice(0,10);
+  return{start:start,end:end};
+}
+
+function applyFilters(){
+  // Si la vista de Horas Extras está activa, recargar datos de Avatar
+  if(document.getElementById('view-horas-extras').style.display!=='none'){
+    heLoadFromAvatar();
+    return;
+  }
+  var mon=document.getElementById('f-month').value;
+  var kitchen=document.getElementById('f-kitchen').value;
+  var range=getDateRange(mon);
+  APP.month=mon;
+  APP.startDate=range.start;
+  APP.endDate=range.end;
+  // Override with custom day range if set
+  var custom=getCustomRange();
+  if(custom){APP.startDate=custom.start;APP.endDate=custom.end;}
+  var s=new Date(APP.startDate),e=new Date(APP.endDate);
+  APP.active_days=Math.round((e-s)/(1000*60*60*24));
+  updatePeriodLabel(mon,custom);
+  if(kitchen&&kitchen!=='all'){
+    loadOverview().then(function(){return loadKitchenDetail(kitchen);}).catch(showError);
+  } else {
+    APP.selectedKitchen=null;
+    APP.kitchenData=null;
+    document.getElementById('btn-back').style.display='none';
+    loadOverview().catch(showError);
+  }
+}
+
+function showHorasExtras(){
+  document.getElementById('view-overview').style.display='none';
+  document.getElementById('view-detail').style.display='none';
+  document.getElementById('view-horas-extras').style.display='block';
+  document.getElementById('btn-back').style.display='inline-block';
+  document.getElementById('btn-he').style.background='#0A2360';
+  document.getElementById('btn-he').style.color='#fff';
+  renderHorasExtras();
+  heLoadFromAvatar();
+}
+
+function backToOverview(){
+  APP.selectedKitchen=null;
+  APP.kitchenData=null;
+  document.getElementById('view-detail').style.display='none';
+  document.getElementById('view-horas-extras').style.display='none';
+  document.getElementById('view-overview').style.display='block';
+  document.getElementById('btn-back').style.display='none';
+  document.getElementById('btn-he').style.background='';
+  document.getElementById('btn-he').style.color='';
+  document.getElementById('f-kitchen').value='all';
+  renderOverview();
+}
+
+function updatePeriodLabel(mon,custom){
+  if(custom){
+    var opts={day:'2-digit',month:'short',year:'numeric'};
+    var df=document.getElementById('f-date-from').value;
+    var dt=document.getElementById('f-date-to').value;
+    var lbl=(df?new Date(df+'T00:00:00').toLocaleDateString('es-CO',opts):'...')+' – '+(dt?new Date(dt+'T00:00:00').toLocaleDateString('es-CO',opts):'...');
+    document.getElementById('hperiod').textContent=lbl;
+    return;
+  }
+  var parts=mon.split('-');
+  var d=new Date(parseInt(parts[0]),parseInt(parts[1])-1,1);
+  var lbl=d.toLocaleDateString('es-CO',{month:'long',year:'numeric'});
+  document.getElementById('hperiod').textContent=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+}
+
+function showError(err){
+  hideLoading(); // always hide spinner first
+  var errMsg=err&&(err.message||String(err))||'Error desconocido';
+  console.error('[showError]',errMsg);
+  document.getElementById('view-overview').style.display='block';
+  var errDiv=document.getElementById('global-error-banner');
+  if(!errDiv){errDiv=document.createElement('div');errDiv.id='global-error-banner';document.getElementById('view-overview').prepend(errDiv);}
+  errDiv.style.cssText='background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:14px;color:#991B1B;font-size:12px;margin:0 0 14px';
+  errDiv.innerHTML='<strong>Error al cargar datos:</strong> '+errMsg+'<br><button onclick="applyFilters()" style="margin-top:8px;padding:6px 16px;background:#1565C0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Reintentar</button>';
+}
+
+// ========================
+// COMPARACION SEMANAL
+// ========================
+var CMP_WEEKS=[];
+
+function getCmpMon(d){var r=new Date(d);var dw=r.getDay();r.setDate(r.getDate()-(dw===0?6:dw-1));r.setHours(0,0,0,0);return r;}
+function fmtShortCmp(d){return d.toLocaleDateString('es-CO',{day:'2-digit',month:'short'});}
+function isoD(d){return d.toISOString().slice(0,10);}
+
+// Compute per-DOW capacity using the hourly model (staff-hours × BENCH)
+function dowCap(dh,dow){
+  var total=0;
+  HOURS.forEach(function(h){
+    var v=dh[dow]&&dh[dow][h]?dh[dow][h].avg:0;
+    total+=v>0?Math.max(2,Math.ceil(v/BENCH)):0;
+  });
+  return total*BENCH; // orders per day at full recommended staffing
+}
+
+// Compute per-DOW expected orders from monthly pattern
+function dowExpected(dh,dow){
+  var totalOrds=0,maxDias=0;
+  HOURS.forEach(function(h){
+    var hv=dh[dow]&&dh[dow][h]?dh[dow][h]:null;
+    if(hv){totalOrds+=hv.orders;if(hv.dias>maxDias)maxDias=hv.dias;}
+  });
+  return maxDias>0?Math.round(totalOrds/maxDias):0;
+}
+
+// Peak recommended staff for a DOW (for display)
+function dowPeakStaff(dh,dow){
+  var mx=0;
+  HOURS.forEach(function(h){
+    var v=dh[dow]&&dh[dow][h]?dh[dow][h].avg:0;
+    if(v>0){var s=Math.max(2,Math.ceil(v/BENCH));if(s>mx)mx=s;}
+  });
+  return mx;
+}
+
+// Active hours for a DOW
+function dowActiveHrs(dh,dow){
+  var n=0;
+  HOURS.forEach(function(h){if(dh[dow]&&dh[dow][h]&&dh[dow][h].avg>0)n++;});
+  return n||1;
+}
+
+// Proyecta un dh sintético para un DOW sin datos, usando el promedio de los DOWs con datos
+function buildProjectedDh(dh){
+  var hourSums={},hourCounts={};
+  HOURS.forEach(function(h){hourSums[h]=0;hourCounts[h]=0;});
+  DAYS_ORDER.forEach(function(dow){
+    var hasDow=HOURS.some(function(h){return dh[dow]&&dh[dow][h]&&dh[dow][h].avg>0;});
+    if(hasDow){
+      HOURS.forEach(function(h){
+        if(dh[dow]&&dh[dow][h]&&dh[dow][h].avg>0){
+          hourSums[h]+=dh[dow][h].avg;
+          hourCounts[h]++;
+        }
+      });
+    }
+  });
+  var proj={};
+  HOURS.forEach(function(h){
+    if(hourCounts[h]>0)proj[h]={avg:hourSums[h]/hourCounts[h],dias:hourCounts[h],orders:0};
+  });
+  return proj; // synthetic per-hour averages
+}
+
+// Productividad: órdenes esperadas por persona por hora (BENCH) y en pesos
+function prodMeta(){
+  var ticket=APP.kitchenData&&APP.kitchenData.kinfo?APP.kitchenData.kinfo.avg_ticket||0:0;
+  return{ordPerHr:BENCH,revenuePerHr:BENCH*ticket,ticket:ticket};
+}
+
+function getNextWeek(){
+  var now=new Date();
+  var mon=getCmpMon(now);
+  var nextMon=new Date(mon);nextMon.setDate(mon.getDate()+7);
+  var nextSun=new Date(nextMon);nextSun.setDate(nextMon.getDate()+6);
+  var nextEnd=new Date(nextMon);nextEnd.setDate(nextMon.getDate()+7);
+  return{start:isoD(nextMon),end:isoD(nextEnd),mon:new Date(nextMon),
+    label:fmtShortCmp(nextMon)+' – '+fmtShortCmp(nextSun),isFuture:true};
+}
+
+function loadComparison(){
+  var refW=getNextWeek();
+  if(!APP.selectedKitchen)return;
+  document.getElementById('cmp-out').innerHTML='';
+  renderComparisonFuture(refW);
+}
+
+// Load actual shifts from Avatar and fill hour cells
+async function loadShifts(refW){
+  if(!APP.selectedKitchen)return;
+  // shifts.kitchen_id uses "NN KITCHEN_NAME" format (e.g. "03 CHAPINERO")
+  // orders_consolidado.kitchen uses display names (e.g. "Chapinero") — strip accents & ILIKE match
+  var kNorm=APP.selectedKitchen.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/'/g,"''");
+  // Show loading badge
+  var badge=document.createElement('div');
+  badge.id='shifts-loading';
+  badge.style.cssText='font-size:11px;color:#3B82F6;padding:4px 8px;margin-top:4px';
+  badge.textContent='⏳ Cruzando con turnos reales de Avatar...';
+  var out=document.getElementById('cmp-out');
+  if(out)out.appendChild(badge);
+
+  // Shifts starting before 05:00 are overnight crew from the PREVIOUS business day
+  // (Avatar shows them under the prior day's schedule). Exclude them with start_h >= 5.
+  // For end_h: cap at 24 if the shift crosses midnight (end < start, same-day comparison).
+  var shiftSql="WITH hours AS (SELECT 6 AS h UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20 UNION ALL SELECT 21 UNION ALL SELECT 22 UNION ALL SELECT 23),"
+    +"sp AS (SELECT EXTRACT(DOW FROM local_start_time) AS dow,EXTRACT(HOUR FROM local_start_time) AS start_h,"
+    +"CASE WHEN EXTRACT(HOUR FROM local_end_time)<=EXTRACT(HOUR FROM local_start_time) THEN 24 ELSE EXTRACT(HOUR FROM local_end_time) END AS end_h "
+    +"FROM fdgy_views.shifts WHERE country='COL' AND kitchen_id ILIKE '%"+kNorm+"%' "
+    +"AND local_start_time>='"+refW.start+"' AND local_start_time<'"+refW.end+"' "
+    +"AND EXTRACT(HOUR FROM local_start_time)>=5) "
+    +"SELECT sp.dow,h.h AS hour,COUNT(*) AS staff FROM sp JOIN hours h ON h.h>=sp.start_h AND h.h<sp.end_h GROUP BY 1,2 ORDER BY 1,2";
+
+  var sr=await callMcp(shiftSql);
+  var b=document.getElementById('shifts-loading');
+  if(b)b.remove();
+
+  if(!sr||sr.isError){
+    // No shift data — keep defaults (model recommendation)
+    return;
+  }
+  var rows=parseRows(sr);
+  if(rows.length===0){
+    var note=document.createElement('div');
+    note.style.cssText='font-size:11px;color:#94A3B8;padding:4px 8px';
+    note.textContent='ℹ️ Sin turnos registrados en Avatar para esta semana. Editá manualmente.';
+    if(out)out.appendChild(note);
+    return;
+  }
+  applyShiftData(rows);
+}
+
+// Fill hour cells with actual shift data from Avatar
+function applyShiftData(rows){
+  // Step 1: Zero out ALL hour cells — hours with no Avatar shift record mean 0 people,
+  // not the model default that calcScheduleAll left there.
+  DAYS_ORDER.forEach(function(d){
+    HOURS.forEach(function(h){
+      var inp=document.getElementById('hp-'+d+'-'+h);
+      if(inp){inp.value=0;updateHourCell(d,h);}
+    });
+  });
+  // Step 2: Apply actual Avatar counts
+  rows.forEach(function(r){
+    var d=parseInt(r[0]);
+    var h=parseInt(r[1]);
+    var staff=parseInt(r[2]);
+    var inp=document.getElementById('hp-'+d+'-'+h);
+    if(inp){inp.value=staff;updateHourCell(d,h);}
+  });
+  // Step 3: Update day-level summary (peak actual staff)
+  var dh=APP.kitchenData?APP.kitchenData.dh:{};
+  DAYS_ORDER.forEach(function(d){
+    var peakActual=0;
+    HOURS.forEach(function(h){
+      var inp=document.getElementById('hp-'+d+'-'+h);
+      if(inp){var v=parseInt(inp.value)||0;if(v>peakActual)peakActual=v;}
+    });
+    var di=document.getElementById('sc-'+d);
+    if(di&&peakActual>0)di.value=peakActual;
+    var exp=dowExpected(dh,d);
+    if(exp>0)calcScheduleRow(d,exp);
+  });
+}
+
+// Separator between summary cols and hour cols
+var SEP='border-right:3px solid #CBD5E1';
+
+function alertBadge(ps){
+  if(ps>=7.5)return'<span class="abadge ab-ok"><span style="font-size:12px;line-height:1">✓</span> OK</span>';
+  if(ps>=5.0)return'<span class="abadge ab-warn"><span style="font-size:12px;line-height:1">~</span> Cerca</span>';
+  return'<span class="abadge ab-alert"><span style="font-size:12px;line-height:1">!</span> Alerta</span>';
+}
+function rowClass(ps){return ps>=7.5?'row-ok':ps>=5.0?'row-warn':'row-alert';}
+
+// ---- PAST/CURRENT WEEK: actual orders + hour grid fused ----
+function renderComparisonPast(refRows,refW){
+  var dh=APP.kitchenData?APP.kitchenData.dh:{};
+  var byDow={};
+  refRows.forEach(function(row){
+    var d=parseInt(row[1]);
+    if(!byDow[d])byDow[d]={orders:0,gmv:0,days:0};
+    byDow[d].orders+=parseInt(row[2]);byDow[d].gmv+=parseFloat(row[3]);byDow[d].days++;
+  });
+
+  var html='<div style="margin-bottom:6px"><p class="cmp-title cmp-t1" style="margin-bottom:6px">Semana real: '+refW.label+' — Ordenes reales &amp; personal recomendado por hora</p>'
+    +'<div style="font-size:11px;color:#64748B;margin-bottom:8px">Ingresa cuántas personas programaste por hora según Avatar (campo <b>m:N</b> = lo que recomienda el modelo). Puedes usar el campo <b>Prog.</b> para rellenar todo el día de un golpe, o editar hora por hora.</div>'
+    +'<div class="grid-wrap"><table class="dhgrid" style="min-width:1200px"><thead><tr>'
+    +'<th class="daycol">Dia</th>'
+    +'<th style="text-align:left;padding:7px 10px;min-width:90px">Ordenes</th>'
+    +'<th style="text-align:left;padding:7px 10px;min-width:115px">Productividad</th>'
+    +'<th style="text-align:center;padding:7px 8px;">Est.</th>'
+    +'<th style="text-align:center;padding:7px 8px;min-width:70px">Sugerido</th>'
+    +'<th style="text-align:center;padding:7px 8px;min-width:72px;'+SEP+'">Prog. ✏️</th>';
+  HOURS.forEach(function(h){html+='<th>'+h+'h</th>';});
+  html+='</tr></thead><tbody>';
+
+  var tot=0,totD=0;
+  DAYS_ORDER.forEach(function(d,di){
+    var v=byDow[d];
+    var cap=dowCap(dh,d);
+    var opd=v&&v.days>0?Math.round(v.orders/v.days):(v?v.orders:0);
+    var eff=v&&cap>0?Math.round(opd/cap*100):0;
+    var ps=v?prodScore(eff):null;var pi=ps!==null?prodInfo(ps):null;
+    if(v){tot+=v.orders;totD+=v.days;}
+    // For days without real data, use historical projection
+    var isProj=!v;
+    var displayOrds, displayOpd, cap2, eff2, ps2, pi2;
+    if(v){
+      displayOrds=v.orders; displayOpd=opd;
+      cap2=dowCap(dh,d); eff2=cap2>0?Math.round(opd/cap2*100):0;
+      ps2=prodScore(eff2); pi2=prodInfo(ps2);
+    } else {
+      var exp=dowExpected(dh,d);
+      if(exp===0){
+        // truly no historical data for this DOW
+        html+='<tr><td class="dayname" style="color:#94A3B8">'+DAYS_NAME[di]+'</td>'
+          +'<td colspan="5" style="color:#CBD5E1;font-size:11px;padding:6px 10px;'+SEP+'">Sin datos históricos</td>';
+        HOURS.forEach(function(h){html+='<td class="cell" style="background:#F8FAFC;color:#CBD5E1">-</td>';});
+        html+='</tr>'; return;
+      }
+      displayOrds=exp; displayOpd=exp;
+      cap2=dowCap(dh,d); eff2=cap2>0?Math.round(exp/cap2*100):0;
+      ps2=prodScore(eff2); pi2=prodInfo(ps2);
+    }
+    var rc=rowClass(ps2);
+    var pk2=dowPeakStaff(dh,d);
+    html+='<tr class="'+rc+'">'
+      +'<td class="dayname">'+DAYS_NAME[di]+'</td>'
+      +'<td style="padding:6px 10px;font-size:12px">'
+        +(v?'<strong>'+displayOrds+'</strong><br><small style="color:#94A3B8">~'+displayOpd+' ord/dia</small>'
+           :'<span style="color:#1565C0;font-style:italic">~'+displayOrds+'</span><br><small style="color:#93C5FD;font-size:10px">📊 proyectado</small>')
+      +'</td>'
+      +'<td style="padding:6px 10px"><span class="'+pi2.cls+'"><strong>'+ps2.toFixed(1)+'</strong> <small>'+pi2.icon+' '+pi2.txt+'</small></span></td>'
+      +'<td style="text-align:center">'+alertBadge(ps2)+'</td>'
+      +'<td style="text-align:center"><span class="sb">'+pk2+'</span></td>'
+      +'<td style="text-align:center;'+SEP+'">'
+        +'<input type="number" min="0" max="30" value="'+pk2+'" id="sc-'+d+'" '
+        +'style="width:50px;padding:3px 5px;border:1.5px solid #93C5FD;border-radius:6px;font-size:13px;font-weight:700;text-align:center;color:#1565C0" '
+        +'oninput="fillDayHours('+d+')">'
+      +'</td>';
+    HOURS.forEach(function(h){
+      var avg=dh[d]&&dh[d][h]?dh[d][h].avg:0;
+      var needed=avg>=1?Math.max(2,Math.ceil(avg/BENCH)):0;
+      if(needed>0){
+        html+='<td class="cell hcell" id="hc-'+d+'-'+h+'" data-model="'+needed+'" data-avg="'+avg.toFixed(2)+'" '
+          +'style="background:#DCFCE7;color:#166534;" onclick="showHourDetail('+d+','+h+')">'
+          +'<div class="hcell-ord">~'+Math.round(avg)+' ord</div>'
+          +'<div class="hcell-lbl">m:'+needed+'</div>'
+          +'<input id="hp-'+d+'-'+h+'" type="number" min="0" max="20" value="'+needed+'" '
+          +'oninput="updateHourCell('+d+','+h+')" onclick="event.stopPropagation()">'
+          +'</td>';
+      } else {
+        html+='<td class="cell" id="hc-'+d+'-'+h+'" style="background:#F8FAFC;color:#CBD5E1">-</td>';
+      }
+    });
+    html+='</tr>';
+  });
+
+  // Total row
+  // Total includes real + projected days
+  var totalAll=0;var daysAll=0;
+  DAYS_ORDER.forEach(function(d){
+    if(byDow[d]){totalAll+=byDow[d].orders;daysAll+=byDow[d].days;}
+    else{var exp=dowExpected(dh,d);if(exp>0){totalAll+=exp;daysAll++;}}
+  });
+  var avgO=daysAll>0?Math.round(totalAll/daysAll):0;
+  var capAll=calcDailyStaffHours(dh)*BENCH;
+  var tEff=capAll>0?Math.round(avgO/capAll*100):0;
+  var tPs=prodScore(tEff);var tPi=prodInfo(tPs);
+  var hasProj=Object.keys(byDow).length<7;
+  html+='<tr style="background:#F0F4FF;font-weight:700"><td class="dayname">Total semana'+(hasProj?' <small style="font-weight:400;color:#93C5FD;font-size:9px">real+proy.</small>':'')+'</td>'
+    +'<td style="padding:6px 10px;font-size:12px">'+totalAll.toLocaleString('es')+'</td>'
+    +'<td style="padding:6px 10px"><span class="'+tPi.cls+'"><strong>'+tPs.toFixed(1)+'</strong> <small>'+tPi.icon+' '+tPi.txt+'</small></span></td>'
+    +'<td style="text-align:center">'+alertBadge(tPs)+'</td>'
+    +'<td></td>'
+    +'<td style="'+SEP+'"></td>';
+  HOURS.forEach(function(){html+='<td class="cell" style="background:#F0F4FF"></td>';});
+  html+='</tr></tbody></table></div></div>';
+  document.getElementById('cmp-out').innerHTML=html;
+  setTimeout(calcScheduleAll,50);
+}
+
+// Calcula la hora óptima de inicio del turno Intermedio según participación de órdenes.
+// Lógica: primera hora en [10..13h] donde la demanda represente ≥7% del total diario.
+// Esto refleja cuándo la operación empieza a ser lo suficientemente alta para necesitar refuerzo.
+function optimalIntermedioStart(dh,dow,projDh){
+  var hasDow=dh[dow]&&HOURS.some(function(h){return dh[dow][h]&&dh[dow][h].avg>0;});
+  // Calcular total de órdenes promedio del día
+  var totalDay=0;
+  HOURS.forEach(function(h){
+    var avg=hasDow?(dh[dow][h]?dh[dow][h].avg:0):(projDh[h]?projDh[h].avg:0);
+    totalDay+=avg;
+  });
+  if(totalDay<=0)return 10;
+  // Umbral: primera hora con ≥7% de participación en el total del día
+  var SHARE_THRESHOLD=0.07;
+  for(var h=10;h<=13;h++){
+    var avg=hasDow?(dh[dow][h]?dh[dow][h].avg:0):(projDh[h]?projDh[h].avg:0);
+    if(avg/totalDay>=SHARE_THRESHOLD)return h;
+  }
+  // Fallback: hora con mayor participación en [10..13]
+  var maxH=10,maxShare=0;
+  for(var h=10;h<=13;h++){
+    var avg=hasDow?(dh[dow][h]?dh[dow][h].avg:0):(projDh[h]?projDh[h].avg:0);
+    var share=avg/totalDay;
+    if(share>maxShare){maxShare=share;maxH=h;}
+  }
+  return maxH;
+}
+
+// ==== SHIFT-BASED STAFFING SCHEDULER (turnos de 8h) ====
+// Asigna turnos reales de 8h por persona:
+//   1ª persona abre en kitFirstH, 2ª llega 1h después (escalonado)
+//   Resto: greedy — cada persona adicional cubre las horas con mayor déficit de demanda
+//   Demanda: ≥10% share → 3 req | ≥5% → 2 req | >0% → 1 req (pre-8h) | desde 8h mínimo 2
+//   Coverage por hora = suma de turnos activos en esa hora
+function computeStaffPhases(dh,dow,projDh,headcount,isTardeCierre,festivo,kitFirstH,cEnd){
+  var SHIFT_LEN=8;
+  var hasDow=dh[dow]&&HOURS.some(function(h){return dh[dow][h]&&dh[dow][h].avg>0;});
+  function getAvg(h){
+    var raw=hasDow?(dh[dow][h]?dh[dow][h].avg:0):(projDh[h]?projDh[h].avg:0);
+    return (festivo&&raw>0)?raw*FESTIVO_BOOST:raw;
+  }
+  var totalDay=0;
+  HOURS.forEach(function(h){totalDay+=getAvg(h);});
+  var shareH={};
+  HOURS.forEach(function(h){shareH[h]=totalDay>0?Math.round(getAvg(h)/totalDay*100):0;});
+
+  // closeH: para días de medianoche → 24; para días normales → último h con demanda + 1
+  var closeH;
+  if(isTardeCierre){
+    closeH=24;
+  } else {
+    var opLastH=kitFirstH;
+    HOURS.forEach(function(h){if(getAvg(h)>0)opLastH=h;});
+    closeH=Math.min(cEnd,opLastH+1);
+    // Piso mínimo: sin datos (semana futura) la ventana debe alcanzar para colocar todos los turnos
+    // kitFirstH+14 → ej. 6h→20h, suficiente para spread de 7 personas
+    if(closeH<kitFirstH+SHIFT_LEN) closeH=Math.min(cEnd,kitFirstH+14);
+  }
+
+  // Demanda requerida por hora
+  var reqH={};
+  for(var h=kitFirstH;h<closeH;h++){
+    var sh=shareH[h]||0,avg=getAvg(h);
+    var needed=0;
+    if(sh>0||avg>0){
+      if(sh>=10)needed=3;
+      else if(sh>=8)needed=2; // ≥8% → agregar turno de apoyo
+      else needed=1;
+      if(avg>0)needed=Math.max(needed,Math.ceil(avg/BENCH));
+      if(h>=8&&needed<2)needed=2; // mínimo 2 desde las 8h
+    }
+    reqH[h]=Math.min(needed,headcount);
+  }
+  // Cierre medianoche: asegurar piso mínimo de 1 por hora en todo el rango operacional
+  // Esto garantiza que el greedy distribuya personal incluso cuando no hay datos de demanda
+  if(isTardeCierre){
+    for(var h=kitFirstH;h<closeH;h++){if((reqH[h]||0)<1)reqH[h]=1;}
+    // Últimas 2h: mínimo 2 personas para cierre seguro
+    for(var h=closeH-2;h<closeH;h++){if((reqH[h]||0)<2)reqH[h]=Math.min(2,headcount);}
+  }
+  // Sin datos (semana futura, totalDay=0): distribuir con demanda sintética uniforme
+  // Evita que el greedy apile todos los turnos en el último slot por empate
+  if(totalDay===0){
+    for(var h=kitFirstH;h<closeH;h++){if((reqH[h]||0)<1)reqH[h]=1;}
+    // Pico central (11h-14h) = 2 → greedy tiende a concentrarse ahí como hora pico típica
+    for(var h=11;h<14;h++){if(h>=kitFirstH&&h<closeH)reqH[h]=Math.min(2,headcount);}
+  }
+
+  // Asignación de turnos de 8h
+  var coverage={};
+  for(var h=kitFirstH;h<closeH;h++)coverage[h]=0;
+  var assignedShifts=[];
+
+  function addShift(startH){
+    var endH=Math.min(closeH,startH+SHIFT_LEN);
+    assignedShifts.push({start:startH,end:endH});
+    for(var h=startH;h<endH;h++)coverage[h]=(coverage[h]||0)+1;
+  }
+
+  // 1 persona obligatoria abre la cocina. Solo 1, no 2.
+  // Las demás se asignan por demanda real (greedy).
+  var peoplePlaced=0;
+  if(headcount>=1){addShift(kitFirstH);peoplePlaced++;}
+
+  // Cierre medianoche (SOLO en días con isTardeCierre=true, es decir Jue-Dom):
+  // Anclar persona que entra a las 16h y trabaja hasta 00h (8h exactas)
+  if(isTardeCierre&&headcount>peoplePlaced){
+    addShift(closeH-SHIFT_LEN); // 16h → endH=min(24,24)=24
+    peoplePlaced++;
+  }
+
+  // ── REGLA INTERMEDIO (apoyo por demanda) ─────────────────────────────────────
+  // Si la PRIMERA hora dentro del rango 10h–13h llega al 8% de participación
+  // se coloca UNA persona de apoyo entrando EXACTAMENTE a esa hora.
+  // No se busca el pico máximo — se busca cuándo se cruza el umbral por primera vez.
+  // Esto garantiza que el apoyo llega a tiempo, no cuando la operación ya colapsó.
+  if(headcount>peoplePlaced){
+    var interStart=-1;
+    for(var h=10;h<=13;h++){
+      if((shareH[h]||0)>=8&&h+SHIFT_LEN<=closeH){interStart=h;break;}
+    }
+    if(interStart>=0){addShift(interStart);peoplePlaced++;}
+  }
+
+  // Greedy de distribución completa:
+  // Para cada persona restante hasta effectiveHC, elegir el mejor inicio según dos criterios:
+  //   1) BENEFICIO POSITIVO (demanda sin cubrir): maximizar, empates → preferir inicio más tardío
+  //      (favorece Intermedio/Cierre sobre Mañana adicional)
+  //   2) SIN DEMANDA PENDIENTE (beneficio=0, personas "extra"): minimizar la concentración
+  //      máxima dentro de la ventana de turno → distribuye en lugar de apilar en el mismo inicio
+  for(var p=peoplePlaced;p<headcount;p++){
+    var bestStart=-1,bestBenefit=-1,bestMaxCov=999;
+    for(var s=kitFirstH;s<=closeH-SHIFT_LEN;s++){
+      // Beneficio marginal: horas dentro del turno con cobertura insuficiente
+      var benefit=0;
+      for(var h2=s;h2<Math.min(closeH,s+SHIFT_LEN);h2++){
+        benefit+=Math.max(0,(reqH[h2]||0)-(coverage[h2]||0));
+      }
+      // Cobertura máxima actual dentro de la ventana (para anticoncentración)
+      var maxCovWin=0;
+      for(var h2=s;h2<Math.min(closeH,s+SHIFT_LEN);h2++){
+        if((coverage[h2]||0)>maxCovWin)maxCovWin=coverage[h2]||0;
+      }
+      var isBetter=false;
+      if(benefit>bestBenefit){
+        isBetter=true;
+      } else if(benefit===bestBenefit){
+        if(benefit>0){
+          // Con demanda: preferir inicio más tardío (Cierre/Intermedio > Mañana extra)
+          isBetter=(s>bestStart);
+        } else {
+          // Sin demanda: preferir ventana menos congestionada; empate → más tardío
+          isBetter=(maxCovWin<bestMaxCov||(maxCovWin===bestMaxCov&&s>bestStart));
+        }
+      }
+      if(isBetter){bestBenefit=benefit;bestStart=s;bestMaxCov=maxCovWin;}
+    }
+    if(bestStart<0)break; // sin posición válida (no debería ocurrir)
+    addShift(bestStart);
+  }
+  // Adjuntar a cada turno cuántas personas trabajan simultáneamente a su hora de inicio
+  // (coverage ya está completo con todos los turnos asignados)
+  assignedShifts.forEach(function(s){s.covAtStart=coverage[s.start]||1;});
+
+  // Comprimir coverage en fases (horas consecutivas con mismo conteo → una barra)
+  var phases=[],pS=kitFirstH,pC=coverage[kitFirstH]||0;
+  for(var h=kitFirstH+1;h<=closeH;h++){
+    var c=h<closeH?(coverage[h]||0):0;
+    if(c!==pC){
+      if(pC>0&&h>pS)phases.push({sH:pS,eH:h,count:pC});
+      pS=h;pC=c;
+    }
+  }
+
+  var maxConcurrent=0;
+  for(var h=kitFirstH;h<closeH;h++){if((coverage[h]||0)>maxConcurrent)maxConcurrent=coverage[h]||0;}
+
+  // Clasificar turnos por franja — SIEMPRE por hora de ENTRADA:
+  // Mañana:     entrada antes de las 10h  (ej. 6h→14h, 8h→16h)
+  // Intermedio: entrada entre 10h y 13h   (ej. 10h→18h, 12h→20h, 13h→21h)
+  // Cierre:     entrada 14h en adelante   (ej. 14h→22h, 16h→00h)
+  var grpM=[],grpI=[],grpC=[];
+  assignedShifts.forEach(function(s){
+    if(s.start<10)grpM.push(s);
+    else if(s.start<14)grpI.push(s); // entra entre 10h y 13h → Intermedio
+    else grpC.push(s);               // entra a las 14h o más tarde → Cierre
+  });
+  function grpSpan(arr){
+    if(!arr.length)return null;
+    var starts=arr.map(function(s){return s.start;});
+    // Ordenar por hora de inicio para apilar barras cronológicamente
+    var sorted=arr.slice().sort(function(a,b){return a.start-b.start;});
+    return{start:Math.min.apply(null,starts),
+           end:Math.max.apply(null,arr.map(function(s){return s.end;})),
+           startMin:Math.min.apply(null,starts),
+           startMax:Math.max.apply(null,starts),
+           count:arr.length,
+           shifts:sorted}; // turnos individuales para renderizado
+  }
+  var turnoData={manana:grpSpan(grpM),intermedio:grpSpan(grpI),cierre:grpSpan(grpC)};
+
+  return{phases:phases,staffH:coverage,shareH:shareH,totalDay:Math.round(totalDay),maxConcurrent:maxConcurrent,turnoData:turnoData,assignedCount:assignedShifts.length};
+}
+
+// ==== GANTT CHART: days as rows, hours as X-axis, band bars ====
+function renderGanttBands(weekDates){
+  var dh=APP.kitchenData?APP.kitchenData.dh:{};
+  var projDh=buildProjectedDh(dh); // datos proyectados para DOWs sin historial
+  var pm=prodMeta();
+
+  // Detect kitchen's actual operating hours from historical data
+  var kitFirstH=23,kitLastH=5;
+  DAYS_ORDER.forEach(function(dow){
+    HOURS.forEach(function(h){
+      if(dh[dow]&&dh[dow][h]&&dh[dow][h].avg>0){
+        if(h<kitFirstH)kitFirstH=h;
+        if(h>kitLastH)kitLastH=h;
+      }
+    });
+  });
+  if(kitFirstH>kitLastH){kitFirstH=6;kitLastH=22;}
+
+  // Nombre de la cocina (debe resolverse ANTES del check de medianoche)
+  var kitchen=APP.selectedKitchen||'';
+
+  // Chart time range: from kitchen open to close (+1h buffer)
+  var cStart=Math.max(5,kitFirstH);
+  // Para cocinas con cierre a medianoche por regla fija, forzar eje hasta 24h
+  var kitchenForMidnight=MIDNIGHT_KITCHENS.indexOf(kitchen)>=0;
+  var cEnd=kitchenForMidnight?24:Math.min(24,kitLastH+1);
+  var nH=cEnd-cStart;
+
+  function pctL(h){return(Math.max(0,(Math.max(h,cStart)-cStart)/nH*100)).toFixed(2)+'%';}
+  function pctW(s,e){return(Math.max(0,(Math.min(e,cEnd)-Math.max(s,cStart))/nH*100)).toFixed(2)+'%';}
+
+  // Get headcount for this kitchen
+  var headcount=KITCHEN_HEADCOUNT[kitchen];
+  if(!headcount){var ehc=estimateHeadcount(dh);headcount=ehc.headcount;}
+  headcount=Math.max(2,headcount||4);
+
+  var MINI_BAR_H=15; // altura de cada barra individual de turno
+  var MINI_GAP=2;    // espacio entre barras apiladas
+  var BAND_H_MIN=22; // altura mínima de slot de banda (para "sin turno")
+  var BAND_GAP=4;    // espacio entre slots de banda
+  var PCTROW_H=16;   // altura de la fila de % por hora
+  // ROW_INNER se computa dinámicamente por día dentro del forEach
+
+  // Horizontal column grid CSS
+  var gridBg='repeating-linear-gradient(to right,transparent,transparent calc('+
+    (100/nH).toFixed(4)+'% - 1px),#E2E8F0 calc('+
+    (100/nH).toFixed(4)+'% - 1px),#E2E8F0 '+
+    (100/nH).toFixed(4)+'%)';
+
+  var html='<div style="overflow-x:auto;border:1px solid #E2E8F0;border-radius:10px;background:#fff">';
+  html+='<div style="min-width:700px">';
+
+  // ---- Header: hour labels ----
+  html+='<div style="display:flex;background:#F8FAFC;border-bottom:2px solid #CBD5E1">'
+    +'<div style="width:130px;min-width:130px;padding:7px 10px;font-size:10px;font-weight:700;color:#64748B;'
+    +'border-right:2px solid #CBD5E1;letter-spacing:.5px">DÍA</div>'
+    +'<div style="flex:1;display:flex;position:relative">';
+
+  for(var hh=cStart;hh<=cEnd;hh++){
+    var lbl=hh===24?'00h':hh<12?hh+'am':hh===12?'12pm':(hh-12)+'pm';
+    html+='<div style="flex:1;text-align:center;font-size:9px;font-weight:600;color:#94A3B8;'
+      +'padding:6px 0;border-left:1px solid #E2E8F0">'+lbl+'</div>';
+  }
+  html+='</div></div>';
+
+  // ---- Indicador de cocina medianoche (para verificar que la regla esté activa) ----
+  if(kitchenForMidnight){
+    html+='<div style="background:#EDE9FE;border-bottom:1px solid #C4B5FD;padding:5px 14px;'
+      +'display:flex;gap:10px;align-items:center">'
+      +'<span style="font-size:10px;font-weight:700;color:#5B21B6">🌙 Cocina cierre medianoche:</span>'
+      +'<span style="font-size:10px;color:#5B21B6"><b>'+kitchen+'</b> → Jue-Dom el eje llega hasta 00h y se programa hasta las 16h</span>'
+      +'</div>';
+  }
+
+  // ---- Productividad meta banner ----
+  if(pm.ticket>0){
+    html+='<div style="background:#F0F4FF;border-bottom:1px solid #E2E8F0;padding:6px 14px;'
+      +'display:flex;gap:18px;align-items:center;flex-wrap:wrap">'
+      +'<span style="font-size:10px;font-weight:700;color:#0A2360">📊 Meta productividad:</span>'
+      +'<span style="font-size:10px;color:#1565C0"><b>'+BENCH+' órd/h</b> por persona</span>'
+      +'<span style="font-size:10px;color:#166534"><b>'+fmtCOP(pm.revenuePerHr)+'</b> en ventas/persona/h al benchmark</span>'
+      +'<span style="font-size:10px;color:#64748B">Ticket prom: '+fmtCOP(pm.ticket)+'</span>'
+      +'</div>';
+  }
+
+  // Pre-calcular descansos por DOW para que el Gantt muestre personas que trabajan ese día
+  var restDistRows=computeRestDistribution(dh,headcount,weekDates);
+  var restByDow={};
+  restDistRows.forEach(function(r){restByDow[r.dow]=r.restSlots||0;});
+
+  // ---- Day rows ----
+  DAYS_ORDER.forEach(function(dow,di){
+    var exp=dowExpected(dh,dow);
+    var isProjected=exp===0;
+    if(isProjected){
+      var projExp=0,projMax=0;
+      HOURS.forEach(function(h){if(projDh[h]){projExp+=projDh[h].avg;if(projDh[h].dias>projMax)projMax=projDh[h].dias;}});
+      exp=projMax>0?Math.round(projExp):0;
+    }
+
+    var isAlt=di%2===1;
+    var dateObj=weekDates[di];
+    var festivo=isFestivo(dateObj);
+    var tardeCierre=isLateCloseDow(dh,dow);
+    // Regla fija: estas cocinas siempre cierran a medianoche Jue-Dom
+    if(!tardeCierre) tardeCierre=isMidnightClose(kitchen,dow);
+    if(!tardeCierre&&isProjected){
+      tardeCierre=!!(projDh[23]&&projDh[23].avg>=1);
+      if(!tardeCierre){
+        var lateDowGroup=[0,4,5,6];
+        if(lateDowGroup.indexOf(dow)>=0){
+          tardeCierre=lateDowGroup.some(function(d){return dh[d]&&dh[d][23]&&dh[d][23].avg>=1;});
+        }
+      }
+    }
+    // Headcount efectivo: restar personas en descanso ese día
+    var restToday=restByDow[dow]||0;
+    var effectiveHC=Math.max(1,headcount-restToday);
+    // Compute dynamic staffing phases for this DOW
+    var pd=computeStaffPhases(dh,dow,projDh,effectiveHC,tardeCierre,festivo,kitFirstH,cEnd);
+
+    // Altura dinámica de cada slot de banda según cuántas personas hay en ella
+    function bsh(td){return!td?BAND_H_MIN:Math.max(BAND_H_MIN,td.count*(MINI_BAR_H+MINI_GAP)+6);}
+    var bsh_m=bsh(pd.turnoData.manana),bsh_i=bsh(pd.turnoData.intermedio),bsh_c=bsh(pd.turnoData.cierre);
+    var ROW_INNER=PCTROW_H+6+bsh_m+bsh_i+bsh_c+2*BAND_GAP+4;
+
+    // Row background — festivos get warm tint; projected days get subtle stripe
+    var rowBg=festivo?'#FFFBF0':(isProjected?'#F8FAFF':(isAlt?'#FAFAFA':'#fff'));
+    html+='<div style="display:flex;border-bottom:1px solid #F1F5F9;background:'+rowBg+'">';
+
+    // Day label
+    var festivoBadge=festivo
+      ?'<div style="font-size:9px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 5px;margin-top:3px;font-weight:700">🎉 Festivo +30%</div>'
+      :'';
+    var tardeBadge=tardeCierre
+      ?'<div style="font-size:9px;background:#EDE9FE;color:#5B21B6;border:1px solid #C4B5FD;border-radius:4px;padding:1px 5px;margin-top:2px;font-weight:700">🌙 →00h</div>'
+      :'';
+    var projBadge=isProjected
+      ?'<div style="font-size:9px;background:#EFF6FF;color:#1E40AF;border:1px solid #93C5FD;border-radius:4px;padding:1px 5px;margin-top:2px;font-weight:700">📊 Proyectado</div>'
+      :'';
+    // Personas sin turno = headcount - turnos asignados (suma los de todas las bandas)
+    var sinTurno=Math.max(0,headcount-pd.assignedCount);
+    var descBadge=sinTurno>0?'<div style="font-size:9px;color:#64748B;margin-top:2px">💤 '+sinTurno+(sinTurno===1?' persona sin turno':' personas sin turno')+'</div>':'';
+    var effVenta=exp>0&&pm.ticket>0?fmtCOP(exp*pm.ticket):'';
+
+    html+='<div style="width:130px;min-width:130px;padding:7px 10px;border-right:2px solid #E2E8F0;'
+      +'display:flex;flex-direction:column;justify-content:center;min-height:'+ROW_INNER+'px;box-sizing:border-box">'
+      +'<div style="font-size:13px;font-weight:700;color:'+(festivo?'#92400E':'#1E293B')+'">'+DAYS_NAME[di]+'</div>'
+      +'<div style="font-size:10px;color:#94A3B8;margin-top:1px">'+fmtShortCmp(dateObj)+'</div>'
+      +(exp>0?'<div style="font-size:10px;color:#E91E8C;font-weight:600;margin-top:2px">~'+exp+' órd'+(festivo?' →&nbsp;<b>~'+Math.round(exp*FESTIVO_BOOST)+'</b>':'')+'</div>':'')
+      +(effVenta?'<div style="font-size:9px;color:#166534;font-weight:600">≈'+effVenta+'</div>':'')
+      +festivoBadge+tardeBadge+projBadge+descBadge
+      +'</div>';
+
+    // Timeline
+    html+='<div style="flex:1;position:relative;min-height:'+ROW_INNER+'px;background:'+gridBg+'">';
+
+    // Row 1: hourly % participation bar
+    html+='<div style="position:absolute;top:0;left:0;right:0;height:'+PCTROW_H+'px;display:flex">';
+    for(var hh=cStart;hh<cEnd;hh++){
+      var sh=pd.shareH[hh]||0;
+      var shColor=sh>=12?'#DC2626':sh>=6?'#D97706':'#94A3B8';
+      var shBg=sh>=12?'rgba(220,38,38,0.07)':sh>=6?'rgba(217,119,6,0.05)':'transparent';
+      html+='<div style="flex:1;display:flex;align-items:center;justify-content:center;background:'+shBg+'">'
+        +'<span style="font-size:8px;font-weight:700;color:'+shColor+'">'+(sh>0?sh+'%':'·')+'</span>'
+        +'</div>';
+    }
+    html+='</div>';
+
+    // Row 2: 3 bandas de turno — cada persona tiene su propia barra de exactamente 8h
+    var BAND_DEF=[
+      {key:'manana',    label:'Mañana',    bg:'#FFFBEB',fg:'#92400E',brd:'#FCD34D',bsh:bsh_m},
+      {key:'intermedio',label:'Intermedio',bg:'#DBEAFE',fg:'#1E40AF',brd:'#93C5FD',bsh:bsh_i},
+      {key:'cierre',    label:'Cierre',    bg:'#F5F3FF',fg:'#5B21B6',brd:'#C4B5FD',bsh:bsh_c}
+    ];
+    var bandY=PCTROW_H+6;
+    BAND_DEF.forEach(function(bd){
+      var td=pd.turnoData[bd.key];
+      var slotH=bd.bsh;
+      if(td&&td.shifts&&td.shifts.length){
+        // Fondo del slot (área completa de la banda)
+        html+='<div style="position:absolute;left:0;right:0;top:'+bandY+'px;height:'+slotH+'px;'
+          +'background:'+bd.bg+'28;border-top:1px dashed '+bd.brd+'55"></div>';
+        // Etiqueta de banda (esquina izq) con total de personas en esa franja
+        var bandN=td.count;
+        var bandNLbl=bandN+(bandN===1?' persona':' personas');
+        html+='<div style="position:absolute;left:3px;top:'+(bandY+3)+'px;font-size:8px;font-weight:700;'
+          +'color:'+bd.fg+';opacity:0.7;z-index:1;pointer-events:none">'+bd.label+' · '+bandNLbl+'</div>';
+        // Barras individuales — una por persona, exactamente 8h de ancho
+        td.shifts.forEach(function(s,si){
+          var barTop=bandY+3+si*(MINI_BAR_H+MINI_GAP);
+          // Ancho = 8h exacto, capped en cEnd
+          var dispEnd=Math.min(cEnd,s.start+8);
+          var bL=pctL(s.start);
+          var bW=pctW(s.start,dispEnd);
+          var barBorder=festivo?'2px solid '+bd.brd:(isProjected?'1.5px dashed '+bd.brd:'1.5px solid '+bd.brd);
+          var barBg=isProjected?bd.bg+'BB':bd.bg;
+          var endLbl=s.end>=24?'00h':s.end+'h';
+          // Etiqueta: solo entrada → salida (el conteo total está en el header de la banda)
+          var shiftLbl=s.start+'h → '+endLbl;
+          html+='<div style="position:absolute;left:'+bL+';width:'+bW+';top:'+barTop+'px;height:'+MINI_BAR_H+'px;'
+            +'border-radius:4px;background:'+barBg+';border:'+barBorder+';'
+            +'display:flex;align-items:center;padding:0 5px;box-sizing:border-box;overflow:hidden;z-index:2">'
+            +'<span style="font-size:9px;font-weight:800;color:'+bd.fg+';white-space:nowrap">'+shiftLbl+'</span>'
+            +'</div>';
+        });
+      } else {
+        html+='<div style="position:absolute;left:1%;right:1%;top:'+bandY+'px;height:'+slotH+'px;'
+          +'border-radius:6px;background:#F8FAFC;border:1px dashed #E2E8F0;'
+          +'display:flex;align-items:center;padding:0 8px">'
+          +'<span style="font-size:8px;color:#CBD5E1">'+bd.label+': sin turno</span>'
+          +'</div>';
+      }
+      bandY+=slotH+BAND_GAP;
+    });
+
+    html+='</div>';  // end timeline
+    html+='</div>';  // end day row
+  });
+
+  // Legend
+  html+='<div style="display:flex;gap:12px;padding:8px 14px;border-top:1px solid #F1F5F9;background:#F8FAFC;flex-wrap:wrap;align-items:center">';
+  [{bg:'#FFFBEB',brd:'#FCD34D',fg:'#92400E',lbl:'🌅 Mañana (entrada antes 10h)'},
+   {bg:'#DBEAFE',brd:'#93C5FD',fg:'#1E40AF',lbl:'☀️ Intermedio (entrada 10h–13h)'},
+   {bg:'#F5F3FF',brd:'#C4B5FD',fg:'#5B21B6',lbl:'🌙 Cierre (entrada 14h en adelante)'}
+  ].forEach(function(b){
+    html+='<div style="display:flex;align-items:center;gap:5px">'
+      +'<div style="width:12px;height:12px;border-radius:3px;background:'+b.bg+';border:1.5px solid '+b.brd+'"></div>'
+      +'<span style="font-size:10px;color:'+b.fg+';font-weight:600">'+b.lbl+'</span>'
+      +'</div>';
+  });
+  html+='<span style="font-size:10px;color:#92400E;background:#FFFBF0;border:1px solid #FCD34D;border-radius:4px;padding:1px 6px">🎉 Festivo = +30% automático</span>';
+  html+='<span style="font-size:10px;color:#5B21B6;background:#EDE9FE;border:1px solid #C4B5FD;border-radius:4px;padding:1px 6px">🌙 Cierre hasta 00h · cada barra = 8h exactas</span>';
+  html+='<span style="font-size:10px;color:#1E40AF;background:#EFF6FF;border:1px solid #93C5FD;border-radius:4px;padding:1px 6px">📊 Proyectado = estimado con promedio de otros días</span>';
+  html+='</div>';
+
+  html+='</div></div>';
+  return html;
+}
+
+// ---- REST DISTRIBUTION ----
+// Calcula cuántas personas descansan cada día de la semana para una cocina
+// Regla: 1 descanso por persona por semana → total descansos = headcount
+// Distribución proporcional: partir de 0 y asignar equitativamente guiado por demanda relativa
+// Factor de demanda relativa por DOW (para variar proyecciones cuando no hay historial)
+var DOW_WEIGHT={0:0.88,1:1.00,2:1.00,3:0.95,4:1.05,5:1.10,6:1.02};
+function computeRestDistribution(dh,headcount,weekDates){
+  var projDh=buildProjectedDh(dh);
+  var rows=[];
+  DAYS_ORDER.forEach(function(dow,di){
+    var dateObj=weekDates[di];
+    var festivo=isFestivo(dateObj);
+    // Calcular demanda esperada ese día (real o proyectada)
+    var exp=dowExpected(dh,dow);
+    var usedProj=false;
+    if(exp===0){
+      usedProj=true;
+      var projSum=0;
+      HOURS.forEach(function(h){if(projDh[h])projSum+=projDh[h].avg;});
+      // Aplicar peso por DOW para que días proyectados muestren demanda diferente
+      exp=Math.round(projSum*(DOW_WEIGHT[dow]||1.0));
+    }
+    // Peak staff needed = máximo personal requerido en cualquier hora del día
+    var peakStaff=2;
+    HOURS.forEach(function(h){
+      var avgOrds=0;
+      if(usedProj){if(projDh[h])avgOrds=projDh[h].avg;}
+      else{if(dh[dow]&&dh[dow][h])avgOrds=dh[dow][h].avg;}
+      if(avgOrds>0){
+        var staffH=Math.max(2,Math.ceil(avgOrds/BENCH));
+        if(festivo)staffH=Math.max(staffH+1,Math.ceil(staffH*FESTIVO_BOOST));
+        peakStaff=Math.max(peakStaff,staffH);
+      }
+    });
+    peakStaff=Math.min(peakStaff,headcount);
+    var maxRest=Math.max(0,headcount-peakStaff);
+    var expAdj=festivo&&exp>0?Math.round(exp*FESTIVO_BOOST):exp;
+    rows.push({dow:dow,di:di,dayName:DAYS_NAME[di],dateStr:dateObj,
+      exp:expAdj,peakStaff:peakStaff,maxRest:maxRest,
+      restSlots:0,festivo:festivo,proj:usedProj});
+  });
+
+  // ── DISTRIBUCIÓN EQUITATIVA DE DESCANSOS ─────────────────────────────────────
+  // Regla: nunca concentrar muchos descansos en un solo día.
+  // Tope por día = ceil(headcount/7). Para 11 personas → máx 2/día.
+  // Para 7 personas → máx 1/día.
+  // Algoritmo: round-robin de menor a mayor demanda — dar 1 descanso por vuelta
+  // hasta agotar el total, respetando el tope diario y el maxRest operacional.
+  var capPerDay=Math.max(1,Math.ceil(headcount/7));
+
+  // Ordenar por demanda ascendente; festivos al final (menos descansos en días festivos)
+  var sortedAsc=rows.slice().sort(function(a,b){
+    if(a.festivo!==b.festivo)return a.festivo?1:-1;
+    return (a.exp||0)-(b.exp||0);
+  });
+
+  var remaining=headcount;
+  // Rondas: cada vuelta da como máximo 1 descanso por día
+  for(var pass=0;pass<capPerDay+1&&remaining>0;pass++){
+    for(var i=0;i<sortedAsc.length&&remaining>0;i++){
+      var r=sortedAsc[i];
+      // Condiciones: (1) no supera tope equitativo diario, (2) no supera límite operacional
+      if(r.restSlots<capPerDay&&r.restSlots<r.maxRest){
+        r.restSlots++;remaining--;
+      }
+    }
+  }
+  // Caso borde: si todavía quedan descansos por asignar (maxRest muy restrictivo),
+  // forzar hasta capPerDay+1 en los días de menor demanda (nunca más de eso)
+  if(remaining>0){
+    for(var i=0;i<sortedAsc.length&&remaining>0;i++){
+      var r=sortedAsc[i];
+      var extra=Math.min(remaining,Math.max(0,(capPerDay+1)-r.restSlots));
+      r.restSlots+=extra;remaining-=extra;
+    }
+  }
+  return rows;
+}
+
+// Estima headcount óptimo para cocinas sin dato hardcodeado
+// Lógica: pico de demanda semanal / BENCH = personal mínimo peak
+// +20% buffer para absorber descansos sin dejar días descubiertos
+// Mínimo 3 personas. Se muestra como "estimado" en la UI.
+function estimateHeadcount(dh){
+  var projDh=buildProjectedDh(dh);
+  var peakHourAvg=0;
+  var totalWeekOrders=0;
+  DAYS_ORDER.forEach(function(dow){
+    HOURS.forEach(function(h){
+      var avg=(dh[dow]&&dh[dow][h])?dh[dow][h].avg:0;
+      if(!avg&&projDh[h])avg=projDh[h].avg;
+      if(avg>peakHourAvg)peakHourAvg=avg;
+      totalWeekOrders+=avg;
+    });
+  });
+  // Personal peak = personas necesarias en la hora más exigente
+  var peakStaff=Math.max(2,Math.ceil(peakHourAvg/BENCH));
+  // Headcount = peak + buffer del ~15% redondeado arriba (para absorber 1 descanso/semana)
+  var estimated=Math.max(3,Math.ceil(peakStaff*1.15));
+  return{headcount:estimated,peakHourAvg:peakHourAvg,peakStaff:peakStaff,isEstimated:true};
+}
+
+function renderRestSection(weekDates){
+  var kitchen=APP.selectedKitchen||'';
+  var dh=APP.kitchenData?APP.kitchenData.dh:{};
+  var headcount=KITCHEN_HEADCOUNT[kitchen];
+  var isEstimated=false;
+  var estInfo=null;
+  if(!headcount){
+    // Cocina sin headcount registrado → estimar desde productividad
+    estInfo=estimateHeadcount(dh);
+    headcount=estInfo.headcount;
+    isEstimated=true;
+  }
+  var rows=computeRestDistribution(dh,headcount,weekDates);
+
+  // Ordenar por demanda para asignar "persona N descansa el día X"
+  // Cada persona tiene exactamente 1 día de descanso
+  var personRest=[]; // personRest[i] = índice de fila donde descansa la persona i+1
+  var slotsLeft=rows.map(function(r){return r.restSlots;});
+  for(var p=1;p<=headcount;p++){
+    // Buscar el día con más slots libres (más descansos aún por asignar)
+    var best=-1,bestSlots=-1;
+    for(var i=0;i<slotsLeft.length;i++){
+      if(slotsLeft[i]>bestSlots){bestSlots=slotsLeft[i];best=i;}
+    }
+    if(best>=0&&bestSlots>0){personRest.push(best);slotsLeft[best]--;}
+    else{personRest.push(-1);}// sin asignar (edge case)
+  }
+  // Agrupar personas por día
+  var personsByDay={};
+  rows.forEach(function(r,ri){personsByDay[ri]=[];});
+  personRest.forEach(function(ri,pi){if(ri>=0)personsByDay[ri].push(pi+1);});
+
+  var html='<div style="margin-top:18px">';
+  html+='<p class="cmp-title cmp-t2" style="margin-bottom:4px">💤 Distribución de descansos — '+kitchen
+    +' ('+headcount+' personas'+(isEstimated?' estimadas':'')+')</p>';
+
+  if(isEstimated&&estInfo){
+    var ticket=APP.kitchenData&&APP.kitchenData.kinfo?APP.kitchenData.kinfo.avg_ticket||0:0;
+    var revPerHr=BENCH*(ticket||0);
+    html+='<div style="background:#EFF6FF;border:1px solid #93C5FD;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:11px;color:#1E40AF">'
+      +'<strong>📊 Dotación estimada automáticamente</strong> — Esta cocina no tiene headcount configurado. '
+      +'Estimación basada en productividad: pico de <strong>~'+Math.round(estInfo.peakHourAvg)+' órd/h</strong> → '
+      +'<strong>'+estInfo.peakStaff+' personas en hora pico</strong> → '
+      +'<strong>'+headcount+' personas sugeridas en total</strong> (incluyendo buffer para descansos).'
+      +(ticket>0?' Efectividad esperada al benchmark: <strong>'+fmtCOP(revPerHr)+'</strong>/persona/h.':'')
+      +' <em>Ajusta si conoces el headcount real de esta cocina.</em></div>';
+  }
+
+  html+='<div style="font-size:11px;color:#64748B;margin-bottom:10px">'
+    +'1 día de descanso por persona/semana. Los días de mayor demanda operan con todos. '
+    +'Festivos activan +30% de dotación, reduciendo automáticamente los descansos ese día.</div>';
+
+  // Tabla
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#F1F5F9">'
+    +'<th style="text-align:left;padding:7px 10px;font-weight:700;color:#475569">Día</th>'
+    +'<th style="text-align:center;padding:7px;color:#475569">Demanda esperada</th>'
+    +'<th style="text-align:center;padding:7px;color:#475569">En operación</th>'
+    +'<th style="text-align:center;padding:7px;color:#475569">Descansos</th>'
+    +'<th style="text-align:left;padding:7px 10px;color:#475569">Personas descansando</th>'
+    +'</tr></thead><tbody>';
+
+  rows.forEach(function(r,ri){
+    var persons=personsByDay[ri]||[];
+    var intensity=r.peakStaff/headcount; // 0..1
+    var opColor=intensity>=0.9?'#DC2626':intensity>=0.7?'#D97706':'#16A34A';
+    var restColor=r.restSlots===0?'#DC2626':r.restSlots<=1?'#D97706':'#1D4ED8';
+    var rowBg=r.festivo?'#FFFBF0':ri%2===0?'#fff':'#F8FAFC';
+
+    html+='<tr style="border-bottom:1px solid #F1F5F9;background:'+rowBg+'">'
+      +'<td style="padding:8px 10px;font-weight:700;color:#1E293B">'
+        +r.dayName
+        +(r.festivo?'<span style="margin-left:5px;font-size:9px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:4px;padding:1px 5px;font-weight:700">🎉 Festivo</span>':'')
+        +(r.proj?'<span style="margin-left:4px;font-size:9px;background:#EFF6FF;color:#1E40AF;border:1px solid #93C5FD;border-radius:4px;padding:1px 4px">📊 Est.</span>':'')
+      +'</td>'
+      +'<td style="text-align:center;padding:8px;color:#475569">~'+r.exp+' órd</td>'
+      +'<td style="text-align:center;padding:8px;font-weight:700;color:'+opColor+'">'
+        +(headcount-r.restSlots)+' / '+headcount
+      +'</td>'
+      +'<td style="text-align:center;padding:8px;font-weight:700;color:'+restColor+'">'
+        +r.restSlots+(r.restSlots===0?' 🔴':r.restSlots===1?' 🟡':' 🟢')
+      +'</td>'
+      +'<td style="padding:8px 10px;color:#64748B">'
+        +(persons.length>0
+          ?persons.map(function(p){
+              return '<span style="display:inline-block;background:#E0E7FF;color:#3730A3;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;margin:1px">P'+p+'</span>';
+            }).join('')
+          :'<span style="color:#94A3B8;font-size:11px">Todos en operación</span>')
+      +'</td>'
+      +'</tr>';
+  });
+
+  html+='</tbody></table></div>';
+
+  // Resumen visual de quién descansa qué día
+  html+='<div style="margin-top:10px;background:#F8FAFC;border-radius:8px;padding:10px 14px">'
+    +'<div style="font-size:10px;font-weight:700;color:#475569;margin-bottom:6px">Resumen por persona:</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:6px">';
+  for(var p=1;p<=headcount;p++){
+    var dayIdx=personRest[p-1];
+    var dayName=dayIdx>=0?rows[dayIdx].dayName:'Sin asignar';
+    var isFest=dayIdx>=0&&rows[dayIdx].festivo;
+    html+='<div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:5px 10px;font-size:11px">'
+      +'<span style="font-weight:700;color:#3730A3">P'+p+'</span> '
+      +'<span style="color:#475569">descansa el </span>'
+      +'<span style="font-weight:600;color:'+(isFest?'#92400E':'#0F172A')+'">'+dayName+(isFest?' 🎉':'')+'</span>'
+      +'</div>';
+  }
+  html+='</div></div>';
+  html+='</div>';
+  return html;
+}
+
+// ---- FUTURE WEEK: Gantt bands + hourly detail ----
+function renderComparisonFuture(refW){
+  var dh=APP.kitchenData?APP.kitchenData.dh:{};
+
+  var weekDates=[];
+  var startD=new Date(refW.start+'T00:00:00');
+  for(var i=0;i<7;i++){var dd=new Date(startD);dd.setDate(startD.getDate()+i);weekDates.push(dd);}
+
+  var wLabel=fmtShortCmp(weekDates[0])+' – '+fmtShortCmp(weekDates[6]);
+  var el=document.getElementById('cmp-week-label');
+  if(el)el.textContent='Semana: '+wLabel;
+
+  var html='<div>';
+
+  // ==== FESTIVO / CIERRE TARDE ALERTS ====
+  var festivosDays=weekDates.filter(function(d){return isFestivo(d);});
+
+  // Detectar días con cierre tarde dinámicamente desde historial
+  var lateDays=DAYS_ORDER.filter(function(dow){return isLateCloseDow(dh,dow);});
+  var lateDayNames=lateDays.map(function(dow){return['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][dow];});
+
+  if(festivosDays.length>0){
+    var fNames=festivosDays.map(function(d){return['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d.getDay()]+' '+d.getDate();}).join(', ');
+    html+='<div style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">'
+      +'<span style="font-size:18px">🎉</span>'
+      +'<div><div style="font-size:12px;font-weight:800;color:#92400E">Festivo esta semana: '+fNames+'</div>'
+      +'<div style="font-size:11px;color:#92400E;margin-top:3px">El modelo aplica <strong>+30% automático</strong> en dotación para días festivos. '
+      +'Verifica los números y ajusta si tu cocina opera diferente ese día.</div></div></div>';
+  }
+  if(lateDays.length>0){
+    var kitName=APP.selectedKitchen||'esta cocina';
+    html+='<div style="background:#EDE9FE;border:1.5px solid #C4B5FD;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start">'
+      +'<span style="font-size:18px">🌙</span>'
+      +'<div><div style="font-size:12px;font-weight:800;color:#5B21B6">'+kitName+' opera hasta medianoche (detectado del historial)</div>'
+      +'<div style="font-size:11px;color:#5B21B6;margin-top:3px">'
+      +'Días con órdenes hasta hora 23: <strong>'+lateDayNames.join(', ')+'</strong>. '
+      +'Turno de Cierre sugerido: ingreso <strong>16h–17h → salida 00h</strong> (mín. 8h/persona). '
+      +'La barra de Cierre en el Gantt se extiende al límite de operación esos días.</div></div></div>';
+  }
+
+  // ==== GANTT CHART ====
+  html+='<p class="cmp-title cmp-t2" style="margin-bottom:4px">📅 Franjas de turno recomendadas — '+wLabel+'</p>'
+    +'<div style="font-size:11px;color:#64748B;margin-bottom:10px">'
+    +'Cada barra muestra la franja horaria y cuántas personas recomienda el modelo. '
+    +'Edita el número dentro de cada barra con lo que vas a montar en Avatar.</div>';
+  try{
+    console.log('[Gantt] llamando renderGanttBands, kitchen='+APP.selectedKitchen+' headcount='+KITCHEN_HEADCOUNT[APP.selectedKitchen]);
+    html+=renderGanttBands(weekDates);
+    console.log('[Gantt] renderGanttBands OK');
+  }catch(e){
+    console.error('[Gantt] ERROR en renderGanttBands: '+e.message+' | '+e.stack);
+    html+='<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px 14px;color:#991B1B;font-size:12px">Error al renderizar el Gantt: '+e.message+'</div>';
+  }
+
+  // ==== DESCANSOS ====
+  html+=renderRestSection(weekDates);
+
+  html+='</div>';
+  document.getElementById('cmp-out').innerHTML=html;
+}
+
+// Validate band input
+function updateBandCell(bandId,dow){
+  if(bandId==='intermedio'){
+    var manInp=document.getElementById('bp-manana-'+dow);
+    var intInp=document.getElementById('bp-intermedio-'+dow);
+    if(manInp&&intInp){
+      var manVal=parseInt(manInp.value)||0;
+      var intVal=parseInt(intInp.value)||0;
+      intInp.style.borderColor=intVal<manVal?'#FCA5A5':'#93C5FD';
+    }
+  }
+}
+
+// Update a single hour cell color based on its own input vs model
+function updateHourCell(d,h){
+  var cell=document.getElementById('hc-'+d+'-'+h);
+  var inp=document.getElementById('hp-'+d+'-'+h);
+  if(!cell||!inp)return;
+  var prog=parseInt(inp.value)||0;
+  var needed=parseInt(cell.getAttribute('data-model'))||0;
+  if(needed===0)return;
+  var bg,fg,brd;
+  if(prog>=needed){
+    bg='#DCFCE7';fg='#166534';brd='none';
+  } else if(prog>0&&prog>=Math.ceil(needed*0.9)){
+    // Within 90% → Cerca (yellow)
+    bg='#FEF9C3';fg='#854D0E';brd='1px solid #FDE047';
+  } else if(prog>0){
+    // Any deficit → red alert
+    bg='#FEE2E2';fg='#991B1B';brd='2px solid #FCA5A5';
+  } else {
+    // No data
+    bg='#F1F5F9';fg='#94A3B8';brd='none';
+  }
+  // Use setProperty with 'important' to override any CSS rules
+  cell.style.setProperty('background-color',bg,'important');
+  cell.style.setProperty('color',fg,'important');
+  cell.style.border=brd;
+  inp.style.color=fg;
+}
+
+// Fill all hour inputs for a day from the day-level input and recalculate
+function fillDayHours(dow){
+  var dayInp=document.getElementById('sc-'+dow);
+  var val=dayInp?parseInt(dayInp.value)||0:0;
+  HOURS.forEach(function(h){
+    var hi=document.getElementById('hp-'+dow+'-'+h);
+    if(hi){hi.value=val;updateHourCell(dow,h);}
+  });
+  calcScheduleRow(dow,dowExpected(APP.kitchenData?APP.kitchenData.dh:{},dow));
+}
+
+// Compat alias
+function calcHourAlerts(dow){fillDayHours(dow);}
+
+// Show hour detail modal
+function showHourDetail(d,h){
+  var cell=document.getElementById('hc-'+d+'-'+h);
+  var inp=document.getElementById('hp-'+d+'-'+h);
+  if(!cell)return;
+  var needed=parseInt(cell.getAttribute('data-model'))||0;
+  var avg=parseFloat(cell.getAttribute('data-avg'))||0;
+  var prog=inp?(parseInt(inp.value)||0):0;
+  var di=DAYS_ORDER.indexOf(d);
+  var dayName=di>=0?DAYS_NAME[di]:'Día';
+  var ok=prog>=needed;
+  var close=prog>0&&prog>=Math.ceil(needed*0.75);
+  var statusColor=ok?'#166534':close?'#854D0E':'#991B1B';
+  var statusBg=ok?'#DCFCE7':close?'#FEF9C3':'#FEE2E2';
+  var statusText=ok?'✓ Cubierto ('+prog+'/'+needed+')'
+    :prog>0?'⚠ Faltan '+(needed-prog)+' persona(s) ('+prog+'/'+needed+')'
+    :'✗ Sin programar (modelo: '+needed+')';
+  var md=document.getElementById('hour-modal');
+  md.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+    +'<strong style="font-size:13px;color:#1E293B">'+dayName+' · '+h+'h</strong>'
+    +'<button onclick="document.getElementById(\'hour-modal\').style.display=\'none\'" '
+    +'style="background:none;border:none;font-size:18px;cursor:pointer;color:#94A3B8;line-height:1">×</button>'
+    +'</div>'
+    +'<div style="font-size:12px;color:#475569;line-height:1.9">'
+    +'<div>📦 Órd. prom. históricas: <b>'+avg.toFixed(1)+'</b> ord/h</div>'
+    +'<div>🧠 Modelo recomienda: <b>'+needed+'</b> persona(s)</div>'
+    +'<div>👤 Programado para esta hora: <b>'+prog+'</b></div>'
+    +'</div>'
+    +'<div style="margin-top:10px;padding:7px 10px;border-radius:8px;background:'+statusBg+';color:'+statusColor+';font-weight:700;font-size:12px">'
+    +statusText+'</div>';
+  var rect=cell.getBoundingClientRect();
+  md.style.top=Math.min(rect.bottom+6,window.innerHeight-200)+'px';
+  md.style.left=Math.max(4,Math.min(rect.left,window.innerWidth-234))+'px';
+  md.style.display='block';
+}
+
+// Recalculate a single row after editing the input
+// Logic: compare progStaff vs model peak (pk). If prog >= pk → OK, close → Cerca, below → Alerta
+function calcScheduleRow(dow,expectedOpd){
+  var inp=document.getElementById('sc-'+dow);
+  if(!inp)return;
+  var dh=APP.kitchenData?APP.kitchenData.dh:{};
+  var progStaff=parseInt(inp.value)||0;
+  var pk=dowPeakStaff(dh,dow);
+  // Coverage ratio vs model peak staff
+  var ratio=pk>0?progStaff/pk:1;
+  // Map to 0-10 score: >= 1.0 → OK (8), >= 0.8 → Cerca (6), >= 0.6 → Ajustado (4.5), < 0.6 → Alerta (2.5)
+  var ps=ratio>=1.0?8.0:ratio>=0.8?6.0:ratio>=0.6?4.5:2.5;
+  // Label: show coverage %
+  var pct=Math.round(ratio*100);
+  var label=ratio>=1.0?'✓ Cubierto':ratio>=0.8?'~ Cerca ('+(100-pct)+'% menos)':'✗ Déficit ('+(100-pct)+'% menos)';
+  var cls=ratio>=1.0?'pval-pos':ratio>=0.8?'pval-neu':'pval-neg';
+  var prodEl=document.getElementById('sc-prod-'+dow);
+  var gapEl=document.getElementById('sc-gap-'+dow);
+  if(prodEl)prodEl.innerHTML='<span class="'+cls+'" style="font-size:12px">'+label+'</span>';
+  if(gapEl)gapEl.innerHTML=alertBadge(ps);
+  var row=prodEl?prodEl.closest('tr'):null;
+  if(row)row.className=rowClass(ps);
+  // NOTE: do NOT call calcHourAlerts/fillDayHours here — it would overwrite per-hour Avatar data
+}
+
+function calcScheduleAll(){
+  DAYS_ORDER.forEach(function(d){fillDayHours(d);});
+}
+
+// Espera a que window.cowork esté listo antes de cargar datos
+// Global safety net: if loading is still showing after 60s, force-hide it and show error
+var _loadSafetyTimer=null;
+function armLoadSafety(){
+  if(_loadSafetyTimer)clearTimeout(_loadSafetyTimer);
+  _loadSafetyTimer=setTimeout(function(){
+    var ld=document.getElementById('loading');
+    if(ld&&ld.style.display!=='none'){
+      console.error('[safety] spinner stuck after 60s, force-hiding');
+      showError(new Error('Tiempo de espera agotado. Recarga la página.'));
+    }
+  },60000);
+}
+
+function waitForCowork(cb,tries){
+  tries=tries||40;
+  if(window.cowork&&window.cowork.callMcpTool){cb();}
+  else if(tries>0){setTimeout(function(){waitForCowork(cb,tries-1);},150);}
+  else{showError(new Error('El puente de datos no respondió. Recarga la página.'));}
+}
+
+// Init
+(function(){
+  var months=getMonths();
+  var sel=document.getElementById('f-month');
+  months.forEach(function(m){sel.innerHTML+='<option value="'+m.value+'">'+m.label+'</option>';});
+  sel.value=months[0].value;
+  document.getElementById('f-city').onchange=function(){updateKitchenFilter();renderOverview();};
+  var range=getDateRange(months[0].value);
+  APP.month=months[0].value;
+  APP.startDate=range.start;
+  APP.endDate=range.end;
+  var s=new Date(range.start),e=new Date(range.end);
+  APP.active_days=Math.round((e-s)/(1000*60*60*24));
+  updatePeriodLabel(months[0].value,null);
+  armLoadSafety();
+  waitForCowork(function(){loadOverview().catch(showError);});
+})();
+
+// ============================================================
+// MÓDULO HORAS EXTRAS
+// ============================================================
+var heWeekOffset=0;
+
+function heGetMonday(offset){
+  var today=new Date();
+  var dow=today.getDay(); // 0=Dom
+  var diffToMon=dow===0?-6:1-dow;
+  var mon=new Date(today);
+  mon.setDate(today.getDate()+diffToMon+(offset||0)*7);
+  mon.setHours(0,0,0,0);
+  return mon;
+}
+
+function heWeekKey(mon){
+  var y=mon.getFullYear();
+  var m=String(mon.getMonth()+1).padStart(2,'0');
+  var d=String(mon.getDate()).padStart(2,'0');
+  return 'he_'+y+'-'+m+'-'+d;
+}
+
+function heWeekDates(mon){
+  var dates=[];
+  for(var i=0;i<7;i++){
+    var d=new Date(mon);
+    d.setDate(mon.getDate()+i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function heLoadData(key){
+  try{var d=localStorage.getItem(key);return d?JSON.parse(d):{};}catch(e){return {};}
+}
+
+function heSaveData(key,data){
+  try{localStorage.setItem(key,JSON.stringify(data));}catch(e){}
+}
+
+function heGetKitchens(){
+  // Usa APP.overviewData si ya cargó; si no, las del headcount hardcodeado
+  if(APP.overviewData&&APP.overviewData.length>0){
+    return APP.overviewData.map(function(k){return k.name;}).slice().sort(function(a,b){return a.localeCompare(b,'es');});
+  }
+  return Object.keys(KITCHEN_HEADCOUNT).slice().sort(function(a,b){return a.localeCompare(b,'es');});
+}
+
+function renderHorasExtras(){
+  var mon=heGetMonday(heWeekOffset);
+  var dates=heWeekDates(mon);
+  var key=heWeekKey(mon);
+  var data=heLoadData(key);
+  var kitchens=heGetKitchens();
+
+  var dayNames=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  var fmt=function(d){return d.getDate()+'/'+(d.getMonth()+1);};
+
+  // Semana label
+  document.getElementById('he-week-label').textContent=
+    'Semana '+fmt(dates[0])+' – '+fmt(dates[6])+'  /  '+dates[0].getFullYear();
+
+  // Tabla
+  var html='<thead>';
+  html+='<tr style="background:#0A2360;color:#fff">';
+  html+='<th style="text-align:left;padding:8px 12px;font-size:11px;font-weight:700;min-width:130px;position:sticky;left:0;background:#0A2360;z-index:1">Cocina</th>';
+  dates.forEach(function(d,i){
+    html+='<th style="text-align:center;padding:8px 6px;font-size:11px;font-weight:700;min-width:68px">'+dayNames[i]+'<br><span style="font-weight:400;opacity:.8;font-size:10px">'+fmt(d)+'</span></th>';
+  });
+  html+='<th style="text-align:center;padding:8px 8px;font-size:11px;font-weight:800;min-width:65px;background:#1E3A8A">Total</th>';
+  html+='</tr></thead><tbody>';
+
+  var colTotals=[0,0,0,0,0,0,0];
+  var grandTotal=0;
+  var kitchensWithHE=0;
+  var peakDayIdx=-1;
+  var peakDayVal=0;
+
+  kitchens.forEach(function(kit,ri){
+    var rowKey=kit.replace(/\s+/g,'_');
+    var rowTotal=0;
+    var rowBg=ri%2===0?'#FFFFFF':'#F8FAFC';
+    html+='<tr style="background:'+rowBg+'">';
+    html+='<td style="padding:6px 12px;font-size:11px;font-weight:600;color:#1E293B;border-bottom:1px solid #E2E8F0;white-space:nowrap;position:sticky;left:0;background:'+rowBg+';z-index:1">'+kit+'</td>';
+    dates.forEach(function(d,i){
+      var cellKey=rowKey+'_'+i;
+      var val=data[cellKey]?Number(data[cellKey]):0;
+      rowTotal+=val;
+      colTotals[i]+=val;
+      var bg=val<=0?'transparent':val<=3?'#FEF9C3':val<=7?'#FED7AA':'#FEE2E2';
+      var fg=val<=0?'#94A3B8':val<=3?'#854D0E':val<=7?'#9A3412':'#991B1B';
+      var bdr=val>0?'border:1.5px solid '+(val<=3?'#FDE68A':val<=7?'#FDBA74':'#FCA5A5')+';':'border:1.5px solid #E2E8F0;';
+      html+='<td style="padding:4px 4px;text-align:center;border-bottom:1px solid #E2E8F0">';
+      html+='<input type="number" min="0" max="24" step="0.5" ';
+      html+='value="'+(val>0?val:'')+'" placeholder="0" ';
+      html+='style="width:56px;height:34px;'+bdr+'border-radius:6px;text-align:center;font-size:13px;font-weight:700;color:'+fg+';background:'+(val>0?bg:'#fff')+';padding:0;outline:none" ';
+      html+='data-wk="'+key+'" data-cell="'+cellKey+'" ';
+      html+='oninput="heOnInput(this)" />';
+      html+='</td>';
+    });
+    var tb=rowTotal<=0?'transparent':rowTotal<=5?'#FEF9C3':rowTotal<=15?'#FED7AA':'#FEE2E2';
+    var tf=rowTotal<=0?'#94A3B8':rowTotal<=5?'#854D0E':rowTotal<=15?'#9A3412':'#991B1B';
+    html+='<td style="text-align:center;font-weight:800;font-size:13px;color:'+tf+';background:'+tb+';border-left:2px solid #CBD5E1;border-bottom:1px solid #E2E8F0;padding:4px 8px">'+(rowTotal>0?rowTotal:'—')+'</td>';
+    html+='</tr>';
+    grandTotal+=rowTotal;
+    if(rowTotal>0)kitchensWithHE++;
+  });
+
+  // Fila totales
+  html+='<tr style="background:#EFF6FF;border-top:2px solid #CBD5E1">';
+  html+='<td style="padding:8px 12px;font-size:11px;font-weight:800;color:#0A2360;position:sticky;left:0;background:#EFF6FF">TOTAL DÍA</td>';
+  colTotals.forEach(function(v,i){
+    if(v>peakDayVal){peakDayVal=v;peakDayIdx=i;}
+    var bg=v<=0?'transparent':v<=5?'#FEF9C3':v<=15?'#FED7AA':'#FEE2E2';
+    var fg=v<=0?'#94A3B8':v<=5?'#854D0E':v<=15?'#9A3412':'#991B1B';
+    html+='<td style="text-align:center;font-weight:800;font-size:13px;color:'+fg+';background:'+bg+';padding:8px 4px">'+(v>0?v:'—')+'</td>';
+  });
+  html+='<td style="text-align:center;font-size:15px;font-weight:900;color:#0A2360;background:#DBEAFE;border-left:2px solid #CBD5E1;padding:8px">'+grandTotal+'</td>';
+  html+='</tr></tbody>';
+
+  document.getElementById('he-table').innerHTML=html;
+
+  // KPIs
+  document.getElementById('he-total').textContent=grandTotal;
+  document.getElementById('he-kitchens').textContent=kitchensWithHE;
+  document.getElementById('he-avg').textContent=kitchensWithHE>0?(grandTotal/kitchensWithHE).toFixed(1):'0';
+  document.getElementById('he-peak-day').textContent=peakDayIdx>=0&&peakDayVal>0?dayNames[peakDayIdx]:'—';
+  document.getElementById('he-peak-sub').textContent=peakDayIdx>=0&&peakDayVal>0?peakDayVal+'h ese día':'sin HE';
+}
+
+function heOnInput(input){
+  var key=input.getAttribute('data-wk');
+  var cellKey=input.getAttribute('data-cell');
+  var val=parseFloat(input.value)||0;
+  if(val<0)val=0;
+  var data=heLoadData(key);
+  if(val>0){data[cellKey]=val;}else{delete data[cellKey];}
+  heSaveData(key,data);
+  // Re-renderizar para actualizar totales y colores
+  renderHorasExtras();
+}
+
+function heWeekNav(delta){
+  heWeekOffset+=delta;
+  renderHorasExtras();
+  heLoadFromAvatar();
+}
+
+// Normaliza nombre de cocina: quita prefijo numérico, minúsculas, sin tildes
+function heNorm(str){
+  return String(str)
+    .replace(/^\d+\s+/,'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+var heAvatarLoading=false;
+
+async function heLoadFromAvatar(){
+  if(heAvatarLoading)return;
+  heAvatarLoading=true;
+  var indicator=document.getElementById('he-avatar-status');
+  var reloadBtn=document.getElementById('btn-he-reload');
+  if(indicator)indicator.innerHTML='🔄 Consultando Avatar...';
+  if(reloadBtn)reloadBtn.disabled=true;
+
+  try{
+    var mon=heGetMonday(heWeekOffset);
+    var dates=heWeekDates(mon);
+    var key=heWeekKey(mon);
+
+    var fmt2=function(d){
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    };
+    var weekStart=fmt2(dates[0]);
+    var dayAfterEnd=new Date(dates[6]);
+    dayAfterEnd.setDate(dayAfterEnd.getDate()+1);
+    var weekEnd=fmt2(dayAfterEnd);
+
+    var sql=
+      "SELECT s.kitchen_id, CAST(s.local_start_time AS DATE) AS work_date, "+
+      "ROUND(SUM(hr.total),1) AS extra_hours "+
+      "FROM fdgy_views.hour_reports hr "+
+      "JOIN fdgy_views.shifts s ON hr.shift_id = s._id "+
+      "WHERE hr.is_extra = TRUE AND hr.to_pay = TRUE AND s.country = 'COL' "+
+      "AND CAST(s.local_start_time AS DATE) >= '"+weekStart+"' "+
+      "AND CAST(s.local_start_time AS DATE) < '"+weekEnd+"' "+
+      "GROUP BY s.kitchen_id, work_date ORDER BY work_date, s.kitchen_id";
+
+    var r=await window.cowork.callMcpTool('mcp__bc593148-2634-4c03-8558-85bc4f9f9bca__execute_query',{sql:sql});
+    var result=(r.structuredContent)||(JSON.parse(r.content[0].text));
+
+    if(result&&result.rows&&result.rows.length>0){
+      var kitchens=heGetKitchens();
+      var data={};  // fresh from Avatar (overwrite)
+
+      result.rows.forEach(function(row){
+        var kitId=row[0];
+        var workDate=row[1]; // "2026-11-03"
+        var hours=parseFloat(row[2])||0;
+        if(hours<=0)return;
+
+        // Map day to index 0=Lun...6=Dom
+        var d=new Date(workDate+'T12:00:00');
+        var dow=d.getDay(); // 0=Dom
+        var dayIdx=dow===0?6:dow-1;
+
+        // Find matching kitchen display name
+        var normId=heNorm(kitId);
+        var matchedKit=null;
+        for(var i=0;i<kitchens.length;i++){
+          if(heNorm(kitchens[i])===normId){matchedKit=kitchens[i];break;}
+        }
+        if(!matchedKit){
+          // Try partial match (e.g. "parque 93" in "parque 93")
+          for(var i=0;i<kitchens.length;i++){
+            var nk=heNorm(kitchens[i]);
+            if(nk.indexOf(normId)>=0||normId.indexOf(nk)>=0){matchedKit=kitchens[i];break;}
+          }
+        }
+
+        if(matchedKit){
+          var rowKey=matchedKit.replace(/\s+/g,'_');
+          var cellKey=rowKey+'_'+dayIdx;
+          data[cellKey]=(data[cellKey]||0)+hours;
+        }
+      });
+
+      heSaveData(key,data);
+
+      var now=new Date();
+      var timeStr=now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+      var matchCount=Object.keys(data).length;
+      if(indicator)indicator.innerHTML=
+        '✅ <strong>Datos de Avatar</strong> · '+result.rows.length+' registros · '+
+        matchCount+' cocinas con HE · actualizado '+timeStr;
+
+      renderHorasExtras();
+    } else {
+      if(indicator)indicator.innerHTML='📭 Sin horas extras aprobadas en Avatar esta semana';
+    }
+  }catch(e){
+    if(indicator)indicator.innerHTML='⚠️ Error consultando Avatar: '+(e.message||e);
+    console.error('heLoadFromAvatar:',e);
+  }
+
+  if(reloadBtn)reloadBtn.disabled=false;
+  heAvatarLoading=false;
+}
+
+function heCopyResumen(){
+  var mon=heGetMonday(heWeekOffset);
+  var dates=heWeekDates(mon);
+  var key=heWeekKey(mon);
+  var data=heLoadData(key);
+  var kitchens=heGetKitchens();
+  var dayNames=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  var fmt=function(d){return d.getDate()+'/'+(d.getMonth()+1);};
+
+  var lines=['📋 Horas Extras Autorizadas','Semana '+fmt(dates[0])+' – '+fmt(dates[6])+' de '+dates[0].getFullYear(),''];
+  var header='Cocina\t'+dayNames.map(function(n,i){return n+' '+fmt(dates[i]);}).join('\t')+'\tTotal';
+  lines.push(header);
+
+  kitchens.forEach(function(kit){
+    var rowKey=kit.replace(/\s+/g,'_');
+    var vals=dates.map(function(d,i){return Number(data[rowKey+'_'+i])||0;});
+    var total=vals.reduce(function(a,b){return a+b;},0);
+    if(total>0)lines.push(kit+'\t'+vals.join('\t')+'\t'+total);
+  });
+
+  var colTotals=[0,0,0,0,0,0,0];
+  kitchens.forEach(function(kit){
+    var rowKey=kit.replace(/\s+/g,'_');
+    dates.forEach(function(d,i){colTotals[i]+=Number(data[rowKey+'_'+i])||0;});
+  });
+  var grandTotal=colTotals.reduce(function(a,b){return a+b;},0);
+  lines.push('TOTAL DÍA\t'+colTotals.join('\t')+'\t'+grandTotal);
+
+  var text=lines.join('\n');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){
+      var btn=document.querySelector('[onclick="heCopyResumen()"]');
+      if(btn){var orig=btn.textContent;btn.textContent='✓ Copiado';setTimeout(function(){btn.textContent=orig;},2000);}
+    });
+  } else {
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    alert('Resumen copiado al portapapeles ✓');
+  }
+}
+</script>
+<div id="hour-modal"></div>
+<script>document.addEventListener('click',function(e){var m=document.getElementById('hour-modal');if(m&&!m.contains(e.target)&&!e.target.closest('.hcell'))m.style.display='none';});</script>
+</body>
+</html>
